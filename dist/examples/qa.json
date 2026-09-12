@@ -1,0 +1,54 @@
+{
+  "zh-classic": {
+    "pages": 1,
+    "a4": true,
+    "within_page_limit": true,
+    "text_present": true,
+    "missing_text_indices": [],
+    "layout_warnings": [],
+    "visual_review": "PASS",
+    "reading_order_review": "PASS",
+    "ats_compatibility": "NOT_CERTIFIED",
+    "review_note": "Reviewed full rendered page and extracted text; no clipping, overlap or missing text. Classic includes decorative section icon glyphs.",
+    "pdf_sha256": "b747d54bede1f5b8e430473ec73160cbb019cb96609ef0ce094de00a590b5255"
+  },
+  "zh-plain": {
+    "pages": 1,
+    "a4": true,
+    "within_page_limit": true,
+    "text_present": true,
+    "missing_text_indices": [],
+    "layout_warnings": [],
+    "visual_review": "PASS",
+    "reading_order_review": "PASS",
+    "ats_compatibility": "NOT_CERTIFIED",
+    "review_note": "Reviewed full rendered page and extracted text; no clipping, overlap or missing text. Classic includes decorative section icon glyphs.",
+    "pdf_sha256": "705b4c18bbfc1eccc6169cf92cc3bf5f2ebb574e4bb63d9dfaaad137386948e5"
+  },
+  "en-classic": {
+    "pages": 1,
+    "a4": true,
+    "within_page_limit": true,
+    "text_present": true,
+    "missing_text_indices": [],
+    "layout_warnings": [],
+    "visual_review": "PASS",
+    "reading_order_review": "PASS",
+    "ats_compatibility": "NOT_CERTIFIED",
+    "review_note": "Reviewed full rendered page and extracted text; no clipping, overlap or missing text. Classic includes decorative section icon glyphs.",
+    "pdf_sha256": "49f9a4e9685ca35c6a0ebd16b4c349b8c9bd1eb508b435bf9be811cfd989cea8"
+  },
+  "en-plain": {
+    "pages": 1,
+    "a4": true,
+    "within_page_limit": true,
+    "text_present": true,
+    "missing_text_indices": [],
+    "layout_warnings": [],
+    "visual_review": "PASS",
+    "reading_order_review": "PASS",
+    "ats_compatibility": "NOT_CERTIFIED",
+    "review_note": "Reviewed full rendered page and extracted text; no clipping, overlap or missing text. Classic includes decorative section icon glyphs.",
+    "pdf_sha256": "bcd38fdabb017a501f5eb7cbed7020a4146bdad94c71e56cbef92d5562928981"
+  }
+}

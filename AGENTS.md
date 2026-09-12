@@ -2,7 +2,10 @@
 
 ## Project
 
-This repository stores a LaTeX resume template and its generated PDF.
+This repository is the `creata-resume-skill` conversational resume skill, with a reusable LaTeX renderer and original bilingual templates.
+
+The skill entrypoint is `SKILL.md`; conditional guidance is in `references/`, role recipes and fictional examples in `assets/`, and the standard-library renderer in `scripts/resume.py`.
+Keep the whole repository installable as one skill; scripts resolve fonts and resources relative to their own real path. Do not duplicate the bundled fonts into another source tree.
 
 The main source files are `resume.tex` and `resume-zh.tex`.
 The style and reusable LaTeX commands live in `resume.cls`.
@@ -49,6 +52,10 @@ The Makefile exports `SOURCE_DATE_EPOCH` so repeated builds do not change the PD
 - `fontawesome.sty`, `fontawesomesymbols-generic.tex`, `fontawesomesymbols-xeluatex.tex`, `fonts/fontawesome-webfont.ttf`: local FontAwesome icon support.
 
 ## Verification
+
+For skill or renderer changes, run `python3 -m unittest discover -s tests -v` and the skill-creator `quick_validate.py` if available. Build the fictional examples with `scripts/resume.py render ... --pdf` in temporary directories for both languages/themes; inspect rendered pages and extracted text. Never use real user data as a public test fixture.
+
+Keep source references honest about what was actually read. The rubric is an editorial heuristic, not an ATS certification or hiring prediction. Real resume output and evidence ledgers belong outside the public repository. Do not upload or submit resumes unless asked.
 
 Before finishing a change:
 

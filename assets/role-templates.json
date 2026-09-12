@@ -1,0 +1,131 @@
+{
+  "software": {
+    "label_zh": "软件工程",
+    "label_en": "Software Engineer",
+    "sections": [
+      "summary",
+      "skills",
+      "experience",
+      "projects",
+      "education"
+    ],
+    "interview": "你负责哪部分实现？做过什么技术取舍？如何验证上线质量？",
+    "bullet_pattern": "针对【约束】，实现【组件/方案】，以【验证方式】确认【结果】。"
+  },
+  "data": {
+    "label_zh": "数据与算法",
+    "label_en": "Data / ML Specialist",
+    "sections": [
+      "summary",
+      "skills",
+      "experience",
+      "projects",
+      "education"
+    ],
+    "interview": "基线和样本是什么？如何避免数据泄漏？离线效果是否在线验证？",
+    "bullet_pattern": "在【数据范围】上采用【方法】，相对【基线】得到【结果及验证范围】。"
+  },
+  "product": {
+    "label_zh": "产品经理",
+    "label_en": "Product Manager",
+    "sections": [
+      "summary",
+      "experience",
+      "projects",
+      "skills",
+      "education"
+    ],
+    "interview": "用户问题是什么？你如何决定优先级？结果能归因到哪一步？",
+    "bullet_pattern": "针对【用户问题】，推动【取舍/功能】，通过【实验或反馈】验证【结果】。"
+  },
+  "design": {
+    "label_zh": "设计",
+    "label_en": "Product / UX Designer",
+    "sections": [
+      "summary",
+      "projects",
+      "experience",
+      "skills",
+      "education"
+    ],
+    "interview": "作品链接是什么？研究发现如何改变设计？谁验证了方案？",
+    "bullet_pattern": "根据【研究发现】调整【设计】，通过【验证方法】确认【结果】，作品见【链接】。"
+  },
+  "marketing": {
+    "label_zh": "市场与运营",
+    "label_en": "Marketing / Growth Specialist",
+    "sections": [
+      "summary",
+      "experience",
+      "projects",
+      "skills",
+      "education"
+    ],
+    "interview": "面向谁、什么渠道？投入和业务结果分别是多少？自然增长如何区分？",
+    "bullet_pattern": "面向【人群】执行【渠道策略】，在【周期/投入】下取得【可归因结果】。"
+  },
+  "sales": {
+    "label_zh": "销售与客户成功",
+    "label_en": "Sales / Customer Success",
+    "sections": [
+      "summary",
+      "experience",
+      "projects",
+      "skills",
+      "education"
+    ],
+    "interview": "个人负责什么客户和周期？签约、回款还是线索？续费是谁推动的？",
+    "bullet_pattern": "负责【客户范围】的【销售/续费环节】，通过【动作】实现【已确认业务结果】。"
+  },
+  "finance": {
+    "label_zh": "财务与审计",
+    "label_en": "Finance / Accounting",
+    "sections": [
+      "summary",
+      "certifications",
+      "experience",
+      "skills",
+      "education"
+    ],
+    "interview": "负责哪些账目或控制？怎么复核准确性？哪些信息需要匿名？",
+    "bullet_pattern": "针对【财务/控制范围】执行【分析或流程】，形成【已验证交付/改进】。"
+  },
+  "operations": {
+    "label_zh": "项目与职能运营",
+    "label_en": "Operations / Project Specialist",
+    "sections": [
+      "summary",
+      "experience",
+      "projects",
+      "skills",
+      "education"
+    ],
+    "interview": "协调哪些对象？流程原先卡在哪里？交付如何验收？",
+    "bullet_pattern": "协调【范围】并改进【流程】，按【验收标准】交付【结果】。"
+  },
+  "graduate": {
+    "label_zh": "应届与实习",
+    "label_en": "Graduate / Intern",
+    "sections": [
+      "education",
+      "projects",
+      "experience",
+      "skills"
+    ],
+    "interview": "课程/实习里自己做了什么？有没有作品、使用者或验收？",
+    "bullet_pattern": "在【课程/实习/志愿项目】中负责【行动】，交付【作品或验证结果】。"
+  },
+  "career-change": {
+    "label_zh": "转行",
+    "label_en": "Career Transition",
+    "sections": [
+      "summary",
+      "projects",
+      "skills",
+      "experience",
+      "education"
+    ],
+    "interview": "旧岗位哪种能力适用于新方向？有没有真实的新方向项目？",
+    "bullet_pattern": "将【已有能力】用于【目标领域真实项目】，完成【行动和成果】。"
+  }
+}

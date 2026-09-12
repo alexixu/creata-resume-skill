@@ -1,0 +1,92 @@
+{
+  "language": "en",
+  "role": "software",
+  "name": "Sample Candidate",
+  "headline": "Software Engineer / Workflow Systems / Fictional Teaching Example",
+  "contacts": [
+    "sample@example.com",
+    "Portfolio: example.com/portfolio"
+  ],
+  "facts_confirmed": true,
+  "sections": [
+    {
+      "id": "summary",
+      "title": "Summary",
+      "entries": [
+        {
+          "heading": "",
+          "date": "",
+          "bullets": [
+            "Software engineer focused on dependable workflow tools and clear operational ownership.",
+            "Experienced in API implementation, regression testing and staged releases for internal teams."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "title": "Skills",
+      "entries": [
+        {
+          "heading": "",
+          "date": "",
+          "bullets": [
+            "Engineering: Python, SQL, REST APIs, integration testing and release documentation.",
+            "Delivery: requirement analysis, incident investigation and cross-functional implementation."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "experience",
+      "title": "Experience",
+      "entries": [
+        {
+          "heading": "Example Workflow Company / Software Engineer",
+          "date": "Jul 2023 - Aug 2026",
+          "bullets": [
+            "Implemented ticket ownership and status history APIs used by three pilot teams, with explicit transition validation and regression tests.",
+            "Worked with product and design to break the rollout into reviewable releases and document acceptance criteria.",
+            "Created a release rollback checklist and alert ownership guide adopted in the weekly release process."
+          ]
+        },
+        {
+          "heading": "Example Tools Company / Junior Engineer",
+          "date": "Jul 2021 - Jun 2023",
+          "bullets": [
+            "Built input validation and error feedback for internal forms, using support cases to reproduce failure paths.",
+            "Maintained integration tests for form submissions and documented recurring production issues for the team."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "title": "Selected Projects",
+      "entries": [
+        {
+          "heading": "Store Reporting Template / Implementation Owner",
+          "date": "Mar 2025 - Jun 2025",
+          "bullets": [
+            "Standardized report fields and exception checks in an Excel template adopted by three stores for weekly reporting.",
+            "Documented field definitions and handover steps so store managers could maintain weekly reports."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "education",
+      "title": "Education",
+      "entries": [
+        {
+          "heading": "Example University / BS in Information Systems",
+          "date": "Sep 2017 - Jun 2021",
+          "bullets": [
+            "Selected project: implemented a campus event registration prototype with input validation."
+          ]
+        }
+      ]
+    }
+  ],
+  "example_notice": "FICTIONAL TEACHING DATA. Never attribute these experiences to a real user."
+}

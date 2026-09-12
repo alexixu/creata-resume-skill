@@ -1,0 +1,6 @@
+interface:
+  display_name: "简历共创 · Creata Resume"
+  short_description: "通过聊天挖掘真实优势，匹配职业模板，评分改进并交付中英文简历"
+  default_prompt: "请使用 $creata-resume-skill 和我一起完成简历，从目标岗位和真实经历开始，逐步改写、评分和美化。"
+policy:
+  allow_implicit_invocation: true

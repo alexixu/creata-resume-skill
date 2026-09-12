@@ -1,55 +1,27 @@
-# Resume Template
+# creata-resume-skill
 
-A minimal, reproducible LaTeX resume template designed for long-term maintenance with GitHub, GitHub Actions, and coding agents such as Codex.
+A conversational resume skill: discover a target role, collect real evidence, write achievements, review with an anchored rubric, and deliver editable text and polished PDFs. [中文](../README.md)
 
-[中文说明](../README.md)
-
-## Quick Start
+Install the **whole repository** at `~/.codex/skills/creata-resume-skill`, or symlink a local checkout there. Keep fonts and scripts with `SKILL.md`; check an existing installation before replacing anything.
 
 ```bash
-make
+git clone git@github.com:alexixu/creata-resume-skill.git ~/.codex/skills/creata-resume-skill
 ```
 
-The generated PDFs will be written to:
+Start a new Codex conversation:
 
-```text
-dist/resume-en.pdf
-dist/resume-zh.pdf
+> $creata-resume-skill Help me write a one-page resume for a software engineering role. Interview me briefly, turn my actual experience into evidence-backed bullets, and produce a reviewed PDF.
+
+Ten templates cover software, data/ML, product, design, marketing, sales/customer success, finance, operations, graduates and career transitions. The six-dimension rubric explains its evidence and unassessed areas; it is not a hiring prediction or ATS score. [Sources and adaptation limits](../references/sources.md).
+
+Python 3.9+ is sufficient for editable output. PDF generation additionally requires Tectonic and Poppler.
+
+```bash
+python3 scripts/resume.py init --role software --language en --output /tmp/my-resume/profile.json
+# Fill and confirm real facts first, then:
+python3 scripts/resume.py render /tmp/my-resume/profile.json --out /tmp/my-resume/v1 --theme plain --pdf
 ```
 
-This project uses `tectonic` for XeLaTeX-compatible rendering.
+Outputs include JSON, Markdown, plain text, LaTeX and optionally PDF. `classic` retains section icons; `plain` uses sequential text without decorative icons. Both need visual and text-order review. Unconfirmed drafts require `--draft`. [Schema and delivery steps](../references/delivery.md).
 
-## File Layout
-
-| File | Purpose |
-| --- | --- |
-| `resume.tex` | English resume content. Edit this file for your own English resume. |
-| `resume-zh.tex` | Chinese resume content. Edit this file for your own Chinese resume. |
-| `resume.cls` | Resume document class: fonts, layout, margins, section styles, contact info, dates, and list spacing. |
-| `Makefile` | Local build command and output path. |
-| `dist/resume-en.pdf` | Generated English PDF output after running `make`. |
-| `dist/resume-zh.pdf` | Generated Chinese PDF output after running `make`. |
-| `fonts/` | Bundled fonts for consistent local and CI rendering. |
-| `AGENTS.md` | Maintenance notes for future coding agents. |
-
-## GitHub Actions
-
-Pushes to `main` automatically build both PDFs when resume source, style, fonts, build files, or the workflow changes.
-
-The workflow uploads `dist/resume-en.pdf` and `dist/resume-zh.pdf` as artifacts and commits them back to `main` if the PDFs changed.
-
-## Customize
-
-1. Rename the repository for your own resume.
-2. Edit `resume.tex` and/or `resume-zh.tex`.
-3. Adjust style only when needed in `resume.cls`.
-4. Run `make -B`.
-5. Check that both generated PDFs remain one A4 page.
-
-## Notes
-
-- Chinese text uses bundled Noto Sans SC fonts under `fonts/NotoSansSC/`.
-- Latin text uses Times New Roman when available, with TeX Gyre Termes as a fallback.
-- FontAwesome files are kept locally so icons render consistently.
-- `SOURCE_DATE_EPOCH` is set in the Makefile to reduce meaningless PDF metadata diffs.
-- Third-party fonts and icon files keep their own upstream licenses and notices.
+The original bilingual templates remain available through `make -B`, producing `dist/resume-en.pdf` and `dist/resume-zh.pdf`. Test helpers with `python3 -m unittest discover -s tests -v`. Store personal outputs outside this public repository. Bundled fonts and icons retain their upstream notices.

@@ -6,3 +6,8 @@ build/
 *.fls
 *.fdb_latexmk
 .DS_Store
+__pycache__/
+*.pyc
+.venv/
+output/
+tmp/

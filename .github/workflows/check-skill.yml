@@ -1,0 +1,61 @@
+name: Check resume skill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "SKILL.md"
+      - "agents/**"
+      - "references/**"
+      - "assets/**"
+      - "scripts/**"
+      - "tests/**"
+      - "resume.cls"
+      - "fontawesome*"
+      - "fonts/**"
+      - ".github/workflows/check-skill.yml"
+  pull_request:
+    paths:
+      - "SKILL.md"
+      - "agents/**"
+      - "references/**"
+      - "assets/**"
+      - "scripts/**"
+      - "tests/**"
+      - "resume.cls"
+      - "fontawesome*"
+      - "fonts/**"
+      - ".github/workflows/check-skill.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PDF dependencies
+        run: brew install tectonic poppler
+      - name: Test renderer behavior
+        run: python3 -m unittest discover -s tests -v
+      - name: Build bilingual examples in both themes
+        shell: bash
+        run: |
+          for language in zh en; do
+            for theme in classic plain; do
+              python3 scripts/resume.py render "assets/examples/$language.json" \
+                --out "$RUNNER_TEMP/resume-review/$language-$theme" --theme "$theme" --pdf
+            done
+          done
+      - name: Upload review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-example-review
+          path: |
+            ${{ runner.temp }}/resume-review/**/*.pdf
+            ${{ runner.temp }}/resume-review/**/qa.json
+            ${{ runner.temp }}/resume-review/**/resume-extracted.txt
+            ${{ runner.temp }}/resume-review/**/build.log
