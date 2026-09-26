@@ -23,6 +23,7 @@ PLACEHOLDER = re.compile(
     r'【\s*(?:待确认|待补充|待填写|待填)[^】]*】|\[TODO[^\]]*\]|\b(?:TODO|TBD|YYYY)\b', re.I)
 ROLE_PLACEHOLDERS = {marker for template in ROLES.values()
                      for marker in re.findall(r'【[^】]*】', template['bullet_pattern'])}
+URL_TEXT = re.compile(r'(?:https?://|www\.|[a-z0-9][a-z0-9.-]*\.[a-z]{2,}/)\S+', re.I)
 
 
 def skeleton(role, language):
@@ -119,21 +120,36 @@ def tex_escape(value):
     escapes = {'\\': r'\textbackslash{}', '&': r'\&', '%': r'\%', '$': r'\$',
                '#': r'\#', '_': r'\_', '{': r'\{', '}': r'\}',
                '~': r'\textasciitilde{}', '^': r'\textasciicircum{}'}
-    return ''.join(escapes.get(char, char) for char in ' '.join(value.split()))
+    def literal(text):
+        return ''.join(escapes.get(char, char) for char in text)
+
+    # Insert only invisible break opportunities into URL-like spans. Escaping
+    # each character first keeps even TeX syntax inside a URL literal and safe.
+    value = ' '.join(value.split())
+    parts, start = [], 0
+    for match in URL_TEXT.finditer(value):
+        parts.append(literal(value[start:match.start()]))
+        parts.append(r'\allowbreak{}'.join(literal(char) for char in match.group()))
+        start = match.end()
+    parts.append(literal(value[start:]))
+    return ''.join(parts)
 
 
 def md_escape(value):
-    return re.sub(r'([\\`*_{}\[\]<>#!|])', r'\\\1', ' '.join(value.split()))
+    return re.sub(r'([\\`*_{}\[\]<>#!|&+().=~-])', r'\\\1', ' '.join(value.split()))
 
 
 def render_text(data, markdown=False, draft=False):
     esc = md_escape if markdown else lambda text: ' '.join(text.split())
     lines = [('# ' if markdown else '') + esc(data['name'])] if data['name'].strip() else []
-    if draft:
-        lines += ['DRAFT / 草稿 - 未完成事实与交付确认']
+    header = ['DRAFT / 草稿 - 未完成事实与交付确认'] if draft else []
     if data['headline']:
-        lines += [esc(data['headline'])]
-    lines += [esc(c) for c in data['contacts']]
+        header += [esc(data['headline'])]
+    header += [esc(c) for c in data['contacts']]
+    if markdown:
+        # CommonMark soft breaks collapse; retain one visible line per header field.
+        header = [line + '  ' for line in header[:-1]] + header[-1:]
+    lines += header
     for section in data['sections']:
         if not section['entries']:
             continue

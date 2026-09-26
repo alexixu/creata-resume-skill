@@ -46,6 +46,8 @@ python3 "$SKILL_ROOT/scripts/resume.py" render "$OUTPUT_ROOT/profile.json" --out
 
 生成的 LaTeX 使用 `literaltext` 类选项，保留英文撇号、`--dry-run` 等双连字符原文。姓名可自然换行；未填写姓名的草稿省略姓名标题，保留草稿标记。
 
+PDF 中的 `http(s)://`、`www.` 和 `example.com/portfolio` 这类链接可在行末折行，保留原始字符，不增加断词横线或可点击链接。Markdown 保留 `&copy;` 等字面文本，防止数字或横线开头的条目标题变成额外列表/分隔线；定位语和每条联系信息分别显示一行。TXT 仍保留原有纯文本结构。
+
 `facts_confirmed` 是代理在用户确认关键事实或采用保守已知表述后记录的状态，不是脚本证明真伪。不能为绕过检查自动设为 true。事实账本保存在单独的 `evidence.md`，不嵌入简历输出。脚本拒绝常见占位符，但无法检测所有虚构说法，仍需人工内容审查。
 
 ## 文件与验证
