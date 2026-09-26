@@ -1,5 +1,8 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{resume}[2026/06/20 Minimal resume class]
+\newif\ifresumeliteraltext
+\DeclareOption{literaltext}{\resumeliteraltexttrue}
+\ProcessOptions\relax
 \LoadClass[11pt]{article}
 
 \setlength{\parindent}{0pt}
@@ -17,6 +20,11 @@
 \hypersetup{hidelinks}
 \urlstyle{same}
 
+% JSON renderer input is literal text, including CLI flags and apostrophes.
+% Handwritten templates retain normal TeX punctuation conventions.
+\ifresumeliteraltext
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeXReset}
+\fi
 \IfFontExistsTF{Times New Roman}
   {\setmainfont{Times New Roman}}
   {\setmainfont{TeX Gyre Termes}}
@@ -66,7 +74,7 @@
 \titlespacing*{\subsection}{0cm}{*1.2}{*0.35}
 
 \newcommand{\name}[1]{%
-  \centerline{\Huge\bfseries{#1}}
+  {\par\centering\Huge\bfseries #1\par}%
   \vspace{0.85ex}
 }
 
@@ -76,12 +84,12 @@
 \newcommand{\github}[1]{\faGithub\ \href{https://#1}{\contacttext{#1}}}
 
 \newcommand{\basicInfo}[1]{%
-  \centerline{#1}
+  {\par\centering #1\par}%
   \vspace{0.65ex}
 }
 
 \newcommand{\headline}[1]{%
-  \centerline{{\normalsize\textcolor{resumeMuted}{#1}}}
+  {\par\centering\normalsize\textcolor{resumeMuted}{#1}\par}%
   \vspace{1.15ex}
 }
 

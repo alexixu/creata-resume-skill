@@ -39,6 +39,13 @@ class ResumeTests(unittest.TestCase):
         self.assertIn('DRAFT', resume.render_tex(data, draft=True))
         self.assertIn('DRAFT', resume.render_text(data, draft=True))
 
+    def test_unnamed_draft_starts_with_draft_notice(self):
+        data = resume.skeleton('product', 'en')
+        resume.validate(data, draft=True)
+        for markdown in (False, True):
+            self.assertTrue(resume.render_text(data, markdown, draft=True).startswith('DRAFT'))
+        self.assertNotIn(r'\name{', resume.render_tex(data, draft=True))
+
     def test_placeholders_cannot_enter_final(self):
         for placeholder in ('【待确认：收益】', 'YYYY.01', 'TBD'):
             data = profile()
@@ -77,8 +84,21 @@ class ResumeTests(unittest.TestCase):
     def test_pdf_extraction_accepts_hyphenation_and_canonical_punctuation(self):
         expected = 'validation; no time-saving claim'
         extracted = 'vali-\n  dation\u037e no time-saving claim'
-        self.assertIn(resume.normalized_text(expected), resume.extraction_variants(extracted))
-        self.assertNotIn(resume.normalized_text('Revenue -5%'), resume.extraction_variants('Revenue 5%'))
+        self.assertTrue(resume.text_is_present(expected, extracted))
+        self.assertFalse(resume.text_is_present('Revenue -5%', 'Revenue 5%'))
+
+    def test_mixed_natural_hyphens_and_word_breaks(self):
+        self.assertTrue(resume.text_is_present(
+            'in-house validation and cross-functional implementation',
+            'in-\nhouse vali-\ndation and cross-\nfunctional implemen-\ntation'))
+        for expected, extracted in (('Revenue 5%', 'Revenue -\n5%'),
+                                    ('营收5%', '营收-\n5%'),
+                                    ('结果32', '结果3-\n2'),
+                                    ('cross-functional', 'crossfunctional'),
+                                    ('--dry-run', '\u2013dry-run'),
+                                    ('validation', 'vali-dation')):
+            with self.subTest(expected=expected, extracted=extracted):
+                self.assertFalse(resume.text_is_present(expected, extracted))
 
     def test_cli_refuses_existing_output_without_altering_it(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -42,11 +42,19 @@ python3 "$SKILL_ROOT/scripts/resume.py" render "$OUTPUT_ROOT/profile.json" --out
 
 `sections` 数组决定实际顺序，可增删自定义章节。空章节自动略过。`heading`、`date` 可省略；概览和技能可以只填 bullets。所有文本是纯文本，不能嵌 LaTeX、HTML 或 Markdown；脚本转义特殊字符。链接以可读文本显示，不自动生成超链接。
 
+输入错误会给出从零开始的字段路径，如 `sections[1].entries[1].bullets[2]`。普通 `【项目名称】` 可作正文；`【待确认：…】`、`【待填：…】`、职业句式中的 `【结果】` 等已知待填词，以及 TODO/TBD/YYYY 仍不能进入终稿。空章节的标题不参与正文占位符检查。粘贴的 CRLF 换行与其他空白一样会规范化为空格。
+
+生成的 LaTeX 使用 `literaltext` 类选项，保留英文撇号、`--dry-run` 等双连字符原文。姓名可自然换行；未填写姓名的草稿省略姓名标题，保留草稿标记。
+
 `facts_confirmed` 是代理在用户确认关键事实或采用保守已知表述后记录的状态，不是脚本证明真伪。不能为绕过检查自动设为 true。事实账本保存在单独的 `evidence.md`，不嵌入简历输出。脚本拒绝常见占位符，但无法检测所有虚构说法，仍需人工内容审查。
 
 ## 文件与验证
 
 生成 `resume.json`、`resume.md`、`resume.txt`、`resume.tex` 和依赖文件；`--pdf` 额外生成 `resume.pdf`、`resume-extracted.txt`、`build.log`、`qa.json`。PDF 页数、A4、文本存在性、可见字段缺失和构建溢出警告由脚本检查。PDF QA 失败返回非零；PDF 可能已生成但尚不可交付为验证通过。
+
+`qa.json` 的 `status: PASSED/FAILED` 仅表示自动检查结果，`stage` 和 `completed_stages` 表示当前及已执行阶段。`max_pages` 记录允许页数，`failure_reasons` 列出失败原因；缺失正文同时保留原有 `missing_text_indices` 并提供可定位的 `missing_text_fields`。重复构建警告只列一次。`PASSED` 不代表事实确认、人工视觉检查或 ATS 认证。
+
+缺少依赖、编译或提取失败时，仍保留可编辑文件，并在 `build.log` 留存错误；报告的 `error` 和失败阶段用于定位问题。未运行的检查不填结果。文本比对允许拉丁单词在行末断词，保留负号与原有连字符的差别。
 
 继续运行：
 
