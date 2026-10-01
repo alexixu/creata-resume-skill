@@ -1,0 +1,823 @@
+{
+  "schema_version": 1,
+  "id": "admin-data",
+  "title": "行政转数据：无指标并纠正两次事实",
+  "execution": {
+    "mode": "same_model_directed_simulation",
+    "fictional": true,
+    "independent_review": false,
+    "real_jobseeker": false,
+    "blind": false,
+    "user_role": "parent agent sends one fictional input at a time",
+    "assistant_role": "skill_trial agent responds before seeing later user inputs",
+    "pdf_executed": false
+  },
+  "limitations": [
+    "同模型代理分别扮演虚构用户与助手；非真人、非独立评审、非盲测。",
+    "结构检查不证明事实真实或写作质量。"
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "user": "我做行政，给三家门店做了Excel报表模板，想转数据分析。没有统计提升多少，简历里是不是没东西可写？",
+      "assistant": "有内容可写：你交付了什么、服务什么范围，本身就是证据，不一定要有提升比例。先保留行政身份，可以写：\n\n求职方向：数据分析\n行政相关经历\n- 为三家门店制作 Excel 报表模板。\n\n这句话已经能用作草稿。等补充具体工作后，再突出与目标岗位相关的部分；暂不写节省时间、SQL 或数据分析决策能力。\n\n只补两点：\n1. 模板整理什么数据，你自己具体做了哪些字段、公式或校验？\n2. 门店是否实际使用、怎么使用？你有没有做过 Excel 之外的数据查询或分析？",
+      "claims": [
+        {
+          "text": "求职方向：数据分析",
+          "fact_ids": [
+            "A03"
+          ]
+        },
+        {
+          "text": "为三家门店制作 Excel 报表模板。",
+          "fact_ids": [
+            "A02"
+          ]
+        }
+      ],
+      "questions": [
+        "模板整理什么数据，你自己具体做了哪些字段、公式或校验？",
+        "门店是否实际使用、怎么使用？你有没有做过 Excel 之外的数据查询或分析？"
+      ],
+      "progress": "先交付无指标的保守要点，采用范围仍待确认，未制造效率或 SQL。"
+    },
+    {
+      "number": 2,
+      "user": "其实是两家门店，不是三家。模板合并销售台账，统一日期和商品编码，用条件格式标出重复项，店长每周在用。我是行政专员，只会Excel，没有SQL。JD A 数据分析助理要求Excel数据整理、SQL查询；JD B 运营专员要求周报、跨店沟通。模板我主导了，你帮我分别写。",
+      "assistant": "已把范围改成两家门店。正式职位继续写行政专员，SQL 明确留作缺口。\n\n数据分析助理版\n行政专员｜相关经历\n- 主导面向两家门店的 Excel 销售台账模板整理，统一日期与商品编码，并用条件格式标记重复项。\n- 模板由店长每周使用。\n\n运营专员版\n行政专员｜相关经历\n- 主导整理两家门店共用的销售台账模板，统一日期与商品编码，供店长每周使用。\n- 用 Excel 条件格式标记重复项，支持每周报表整理。\n\nJD A 的 Excel 数据整理有直接证据；SQL 查询不写成已有能力。JD B 可以突出每周报表支持，但目前还不能写成“独立编写周报”或“主导跨店协调”，因为具体职责尚未说明。\n\n只补一个能改变运营版重点的问题：两家门店对字段或数据口径有不同意见时，你具体做过什么沟通？如果没发生过，就不写跨店协调。",
+      "claims": [
+        {
+          "text": "行政专员｜相关经历",
+          "fact_ids": [
+            "A07"
+          ]
+        },
+        {
+          "text": "主导面向两家门店的 Excel 销售台账模板整理，统一日期与商品编码，并用条件格式标记重复项。",
+          "fact_ids": [
+            "A05",
+            "A06",
+            "A08"
+          ]
+        },
+        {
+          "text": "模板由店长每周使用。",
+          "fact_ids": [
+            "A06"
+          ]
+        },
+        {
+          "text": "主导整理两家门店共用的销售台账模板，统一日期与商品编码，供店长每周使用。",
+          "fact_ids": [
+            "A05",
+            "A06",
+            "A08"
+          ]
+        },
+        {
+          "text": "用 Excel 条件格式标记重复项，支持每周报表整理。",
+          "fact_ids": [
+            "A06"
+          ]
+        }
+      ],
+      "questions": [
+        "两家门店对字段或数据口径有不同意见时，你具体做过什么沟通？如果没发生过，就不写跨店协调。"
+      ],
+      "progress": "修正服务范围为两店，形成数据整理与周报支持两版，明确 SQL 和跨店协调缺口。"
+    },
+    {
+      "number": 3,
+      "user": "还有主导也得改：方案是主管定的，我参与制作，具体负责日期和商品编码整理、条件格式。我收集了两个店长反馈，汇总给主管，没有自己定口径。姓名陈示例，联系方式fictional.admin@example.com。请给中文数据助理版、中文运营版，以及英文数据助理版正文和评分，不再追问。任职日期我不想公开，不补日期。",
+      "assistant": "已同步两次修正：范围是两家门店，你参与制作并负责具体数据整理；方案由主管确定。以下三版都不再写“主导”，也不写 SQL。任职日期按你的选择省略。\n\n中文数据助理版\n陈示例\nfictional.admin@example.com\n求职方向：数据分析助理\n\n工作经历\n行政专员\n- 参与制作面向两家门店的 Excel 销售台账模板，负责日期和商品编码整理，并用条件格式标记重复项。\n- 收集两位店长的反馈并汇总给主管；模板方案由主管确定。\n- 模板由店长每周使用。\n\n中文运营版\n陈示例\nfictional.admin@example.com\n求职方向：运营专员\n\n工作经历\n行政专员\n- 收集两位店长对销售台账模板的反馈并汇总给主管，支持报表模板沟通。\n- 参与制作两家门店使用的 Excel 销售台账模板，负责日期、商品编码整理与重复项标记。\n- 模板由店长每周使用；方案由主管确定。\n\n英文数据助理版\n陈示例\nfictional.admin@example.com\nTarget role: Data Analyst Assistant\n\nExperience\nAdministrative Specialist\n- Participated in creating an Excel sales-ledger template for two stores, with responsibility for organizing dates and product codes and using conditional formatting to flag duplicates.\n- Collected feedback from both store managers and summarized it for the supervisor, who defined the template plan.\n- The template is used weekly by the store managers.\n\n正文暂评（档位/4；依据给定 JD 片段）：\n维度（权重）｜中文数据｜中文运营｜英文数据｜依据\n目标匹配（25）｜2｜3｜2｜数据岗的 Excel 整理有证据，SQL 缺失；运营岗有每周模板支持和两位店长反馈沟通，但未证明独立编写完整周报。\n证据与可信度（25）｜4｜4｜4｜两店范围、主管方案、本人具体工作和使用频率均可追溯，纠正后的个人/团队边界清楚。\n成果与价值（20）｜3｜3｜3｜有统一字段、重复项提示和每周使用；进一步业务作用未知，不杜撰收益。\n结构与取舍（10）｜3｜3｜3｜一段行政经历分别突出数据整理和沟通支持；完整职业材料尚未提供，隐去日期是你的选择，不据此编造。\n表达质量（10）｜4｜4｜4｜两种语言均保留参与者身份、两家门店与主管决策边界。\n排版与提取（10）｜未评｜未评｜未评｜未生成 PDF。\n\n已评加权分：中文数据助理 70/90，中文运营 76.25/90，英文数据助理 70/90；不同岗位版本不作直接优劣排名，分数仅解释当前正文。\nJD 映射：数据版第一条支持 Excel 整理，SQL 保留缺口；运营版第一条支持收集并汇总门店反馈，后两条支持周报相关流程，不扩写为独立口径决策或完整周报负责。\n剩余限制：公司及其他完整简历材料未提供，收入/效率变化未知，SQL 缺失；日期按要求省略。正文可复制使用，但 PDF、视觉和阅读顺序未验证。本轮不再追问。",
+      "claims": [
+        {
+          "id": "AD1",
+          "text": "陈示例",
+          "fact_ids": [
+            "A11"
+          ]
+        },
+        {
+          "id": "AD2",
+          "text": "fictional.admin@example.com",
+          "fact_ids": [
+            "A11"
+          ]
+        },
+        {
+          "id": "AD3",
+          "text": "行政专员",
+          "fact_ids": [
+            "A07"
+          ]
+        },
+        {
+          "id": "AD4",
+          "text": "参与制作面向两家门店的 Excel 销售台账模板，负责日期和商品编码整理，并用条件格式标记重复项。",
+          "fact_ids": [
+            "A05",
+            "A06",
+            "A09"
+          ]
+        },
+        {
+          "id": "AD5",
+          "text": "收集两位店长的反馈并汇总给主管；模板方案由主管确定。",
+          "fact_ids": [
+            "A09",
+            "A10"
+          ]
+        },
+        {
+          "id": "AD6",
+          "text": "模板由店长每周使用。",
+          "fact_ids": [
+            "A06"
+          ]
+        },
+        {
+          "id": "AO1",
+          "text": "陈示例",
+          "fact_ids": [
+            "A11"
+          ]
+        },
+        {
+          "id": "AO2",
+          "text": "fictional.admin@example.com",
+          "fact_ids": [
+            "A11"
+          ]
+        },
+        {
+          "id": "AO3",
+          "text": "行政专员",
+          "fact_ids": [
+            "A07"
+          ]
+        },
+        {
+          "id": "AO4",
+          "text": "收集两位店长对销售台账模板的反馈并汇总给主管，支持报表模板沟通。",
+          "fact_ids": [
+            "A10"
+          ]
+        },
+        {
+          "id": "AO5",
+          "text": "参与制作两家门店使用的 Excel 销售台账模板，负责日期、商品编码整理与重复项标记。",
+          "fact_ids": [
+            "A05",
+            "A06",
+            "A09"
+          ]
+        },
+        {
+          "id": "AO6",
+          "text": "模板由店长每周使用；方案由主管确定。",
+          "fact_ids": [
+            "A06",
+            "A09"
+          ]
+        },
+        {
+          "id": "AE1",
+          "text": "陈示例",
+          "fact_ids": [
+            "A11"
+          ]
+        },
+        {
+          "id": "AE2",
+          "text": "fictional.admin@example.com",
+          "fact_ids": [
+            "A11"
+          ]
+        },
+        {
+          "id": "AE3",
+          "text": "Administrative Specialist",
+          "fact_ids": [
+            "A07"
+          ]
+        },
+        {
+          "id": "AE4",
+          "text": "Participated in creating an Excel sales-ledger template for two stores, with responsibility for organizing dates and product codes and using conditional formatting to flag duplicates.",
+          "fact_ids": [
+            "A05",
+            "A06",
+            "A09"
+          ]
+        },
+        {
+          "id": "AE5",
+          "text": "Collected feedback from both store managers and summarized it for the supervisor, who defined the template plan.",
+          "fact_ids": [
+            "A09",
+            "A10"
+          ]
+        },
+        {
+          "id": "AE6",
+          "text": "The template is used weekly by the store managers.",
+          "fact_ids": [
+            "A06"
+          ]
+        }
+      ],
+      "questions": [],
+      "progress": "撤回主导并保留两店修正，交付三种正文；明确行政职称、未知收益、SQL缺口和不公开日期。"
+    }
+  ],
+  "facts": [
+    {
+      "id": "A01",
+      "text": "从事行政工作",
+      "source_turn": 1,
+      "source_quote": "我做行政",
+      "status": "user_stated"
+    },
+    {
+      "id": "A02",
+      "text": "为三家门店制作 Excel 报表模板，尚未说明实际使用范围",
+      "source_turn": 1,
+      "source_quote": "给三家门店做了Excel报表模板",
+      "status": "superseded",
+      "superseded_by": "A05"
+    },
+    {
+      "id": "A03",
+      "text": "希望转数据分析",
+      "source_turn": 1,
+      "source_quote": "想转数据分析",
+      "status": "user_stated"
+    },
+    {
+      "id": "A04",
+      "text": "没有统计改进幅度",
+      "source_turn": 1,
+      "source_quote": "没有统计提升多少",
+      "status": "user_stated"
+    },
+    {
+      "id": "A05",
+      "text": "实际范围为两家门店，并非三家",
+      "source_turn": 2,
+      "source_quote": "其实是两家门店，不是三家。",
+      "status": "user_stated",
+      "supersedes": [
+        "A02"
+      ]
+    },
+    {
+      "id": "A06",
+      "text": "模板合并销售台账、统一日期及商品编码、条件格式标记重复项，店长每周使用",
+      "source_turn": 2,
+      "source_quote": "模板合并销售台账，统一日期和商品编码，用条件格式标出重复项，店长每周在用。",
+      "status": "user_stated"
+    },
+    {
+      "id": "A07",
+      "text": "正式职位行政专员；会Excel而不会SQL",
+      "source_turn": 2,
+      "source_quote": "我是行政专员，只会Excel，没有SQL。",
+      "status": "user_stated"
+    },
+    {
+      "id": "A08",
+      "text": "此轮称主导模板",
+      "source_turn": 2,
+      "source_quote": "模板我主导了",
+      "status": "superseded",
+      "superseded_by": "A09"
+    },
+    {
+      "id": "A09",
+      "text": "参与模板制作，负责日期、商品编码整理和条件格式；方案由主管确定",
+      "source_turn": 3,
+      "source_quote": "方案是主管定的，我参与制作，具体负责日期和商品编码整理、条件格式。",
+      "status": "user_stated",
+      "supersedes": [
+        "A08"
+      ]
+    },
+    {
+      "id": "A10",
+      "text": "收集两个店长反馈汇总给主管，本人没有确定口径",
+      "source_turn": 3,
+      "source_quote": "我收集了两个店长反馈，汇总给主管，没有自己定口径。",
+      "status": "user_stated"
+    },
+    {
+      "id": "A11",
+      "text": "姓名陈示例，虚构联系方式",
+      "source_turn": 3,
+      "source_quote": "姓名陈示例，联系方式fictional.admin@example.com。",
+      "status": "user_stated"
+    },
+    {
+      "id": "A12",
+      "text": "不公开任职日期，不补日期",
+      "source_turn": 3,
+      "source_quote": "任职日期我不想公开，不补日期。",
+      "status": "user_stated"
+    }
+  ],
+  "status": "completed",
+  "targets": [
+    {
+      "id": "jd-a",
+      "title": "数据分析助理",
+      "source_turn": 2,
+      "source_quote": "JD A 数据分析助理要求Excel数据整理、SQL查询",
+      "requirements": [
+        {
+          "id": "A-A1",
+          "text": "Excel数据整理",
+          "kind": "requirement"
+        },
+        {
+          "id": "A-A2",
+          "text": "SQL查询",
+          "kind": "requirement"
+        }
+      ]
+    },
+    {
+      "id": "jd-b",
+      "title": "运营专员",
+      "source_turn": 2,
+      "source_quote": "JD B 运营专员要求周报、跨店沟通",
+      "requirements": [
+        {
+          "id": "A-B1",
+          "text": "周报",
+          "kind": "requirement"
+        },
+        {
+          "id": "A-B2",
+          "text": "跨店沟通",
+          "kind": "requirement"
+        }
+      ]
+    }
+  ],
+  "deliverables": {
+    "scope": "confirmed_text_pdf_unverified",
+    "versions": [
+      {
+        "id": "admin-data-zh",
+        "target_id": "jd-a",
+        "language": "zh",
+        "text": "陈示例\nfictional.admin@example.com\n求职方向：数据分析助理\n\n工作经历\n行政专员\n- 参与制作面向两家门店的 Excel 销售台账模板，负责日期和商品编码整理，并用条件格式标记重复项。\n- 收集两位店长的反馈并汇总给主管；模板方案由主管确定。\n- 模板由店长每周使用。",
+        "claims": [
+          {
+            "id": "AD1",
+            "text": "陈示例",
+            "fact_ids": [
+              "A11"
+            ]
+          },
+          {
+            "id": "AD2",
+            "text": "fictional.admin@example.com",
+            "fact_ids": [
+              "A11"
+            ]
+          },
+          {
+            "id": "AD3",
+            "text": "行政专员",
+            "fact_ids": [
+              "A07"
+            ]
+          },
+          {
+            "id": "AD4",
+            "text": "参与制作面向两家门店的 Excel 销售台账模板，负责日期和商品编码整理，并用条件格式标记重复项。",
+            "fact_ids": [
+              "A05",
+              "A06",
+              "A09"
+            ]
+          },
+          {
+            "id": "AD5",
+            "text": "收集两位店长的反馈并汇总给主管；模板方案由主管确定。",
+            "fact_ids": [
+              "A09",
+              "A10"
+            ]
+          },
+          {
+            "id": "AD6",
+            "text": "模板由店长每周使用。",
+            "fact_ids": [
+              "A06"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "admin-ops-zh",
+        "target_id": "jd-b",
+        "language": "zh",
+        "text": "陈示例\nfictional.admin@example.com\n求职方向：运营专员\n\n工作经历\n行政专员\n- 收集两位店长对销售台账模板的反馈并汇总给主管，支持报表模板沟通。\n- 参与制作两家门店使用的 Excel 销售台账模板，负责日期、商品编码整理与重复项标记。\n- 模板由店长每周使用；方案由主管确定。",
+        "claims": [
+          {
+            "id": "AO1",
+            "text": "陈示例",
+            "fact_ids": [
+              "A11"
+            ]
+          },
+          {
+            "id": "AO2",
+            "text": "fictional.admin@example.com",
+            "fact_ids": [
+              "A11"
+            ]
+          },
+          {
+            "id": "AO3",
+            "text": "行政专员",
+            "fact_ids": [
+              "A07"
+            ]
+          },
+          {
+            "id": "AO4",
+            "text": "收集两位店长对销售台账模板的反馈并汇总给主管，支持报表模板沟通。",
+            "fact_ids": [
+              "A10"
+            ]
+          },
+          {
+            "id": "AO5",
+            "text": "参与制作两家门店使用的 Excel 销售台账模板，负责日期、商品编码整理与重复项标记。",
+            "fact_ids": [
+              "A05",
+              "A06",
+              "A09"
+            ]
+          },
+          {
+            "id": "AO6",
+            "text": "模板由店长每周使用；方案由主管确定。",
+            "fact_ids": [
+              "A06",
+              "A09"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "admin-data-en",
+        "target_id": "jd-a",
+        "language": "en",
+        "text": "陈示例\nfictional.admin@example.com\nTarget role: Data Analyst Assistant\n\nExperience\nAdministrative Specialist\n- Participated in creating an Excel sales-ledger template for two stores, with responsibility for organizing dates and product codes and using conditional formatting to flag duplicates.\n- Collected feedback from both store managers and summarized it for the supervisor, who defined the template plan.\n- The template is used weekly by the store managers.",
+        "claims": [
+          {
+            "id": "AE1",
+            "text": "陈示例",
+            "fact_ids": [
+              "A11"
+            ]
+          },
+          {
+            "id": "AE2",
+            "text": "fictional.admin@example.com",
+            "fact_ids": [
+              "A11"
+            ]
+          },
+          {
+            "id": "AE3",
+            "text": "Administrative Specialist",
+            "fact_ids": [
+              "A07"
+            ]
+          },
+          {
+            "id": "AE4",
+            "text": "Participated in creating an Excel sales-ledger template for two stores, with responsibility for organizing dates and product codes and using conditional formatting to flag duplicates.",
+            "fact_ids": [
+              "A05",
+              "A06",
+              "A09"
+            ]
+          },
+          {
+            "id": "AE5",
+            "text": "Collected feedback from both store managers and summarized it for the supervisor, who defined the template plan.",
+            "fact_ids": [
+              "A09",
+              "A10"
+            ]
+          },
+          {
+            "id": "AE6",
+            "text": "The template is used weekly by the store managers.",
+            "fact_ids": [
+              "A06"
+            ]
+          }
+        ]
+      }
+    ],
+    "jd_mappings": [
+      {
+        "target_id": "jd-a",
+        "requirement_id": "A-A1",
+        "status": "supported",
+        "fact_ids": [
+          "A06",
+          "A09"
+        ],
+        "claim_ids": [
+          "AD4",
+          "AE4"
+        ],
+        "gap": ""
+      },
+      {
+        "target_id": "jd-a",
+        "requirement_id": "A-A2",
+        "status": "gap",
+        "fact_ids": [
+          "A07"
+        ],
+        "claim_ids": [],
+        "gap": "明确没有SQL。"
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "A-B1",
+        "status": "partial",
+        "fact_ids": [
+          "A06",
+          "A09"
+        ],
+        "claim_ids": [
+          "AO5",
+          "AO6"
+        ],
+        "gap": "有每周报表模板支持，尚未说明本人独立编写完整周报。"
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "A-B2",
+        "status": "supported",
+        "fact_ids": [
+          "A10"
+        ],
+        "claim_ids": [
+          "AO4"
+        ],
+        "gap": ""
+      }
+    ],
+    "assessments": [
+      {
+        "version_id": "admin-data-zh",
+        "scope": "provisional_text_only",
+        "assessed_score": 70,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 2,
+            "evidence_claim_ids": [
+              "AD4",
+              "AD5",
+              "AD6"
+            ],
+            "reason": "Excel数据整理有证据，但SQL缺失。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 4,
+            "evidence_claim_ids": [
+              "AD4",
+              "AD5",
+              "AD6"
+            ],
+            "reason": "两次纠正后职责、范围和主管决策边界可追溯。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AD4",
+              "AD5",
+              "AD6"
+            ],
+            "reason": "字段整理、重复项提示和每周使用明确，业务收益未知。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AD4",
+              "AD5",
+              "AD6"
+            ],
+            "reason": "相关经历重心明确，完整职业材料未提供；不因隐去日期补造信息。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "AD4",
+              "AD5",
+              "AD6"
+            ],
+            "reason": "语言精炼，参与及主管方案边界一致。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "未生成PDF。"
+          }
+        ]
+      },
+      {
+        "version_id": "admin-ops-zh",
+        "scope": "provisional_text_only",
+        "assessed_score": 76.25,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AO4",
+              "AO5",
+              "AO6"
+            ],
+            "reason": "有每周模板使用及门店反馈沟通，完整周报职责尚无证据。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 4,
+            "evidence_claim_ids": [
+              "AO4",
+              "AO5",
+              "AO6"
+            ],
+            "reason": "两次纠正后职责、范围和主管决策边界可追溯。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AO4",
+              "AO5",
+              "AO6"
+            ],
+            "reason": "字段整理、重复项提示和每周使用明确，业务收益未知。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AO4",
+              "AO5",
+              "AO6"
+            ],
+            "reason": "相关经历重心明确，完整职业材料未提供；不因隐去日期补造信息。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "AO4",
+              "AO5",
+              "AO6"
+            ],
+            "reason": "语言精炼，参与及主管方案边界一致。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "未生成PDF。"
+          }
+        ]
+      },
+      {
+        "version_id": "admin-data-en",
+        "scope": "provisional_text_only",
+        "assessed_score": 70,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 2,
+            "evidence_claim_ids": [
+              "AE4",
+              "AE5",
+              "AE6"
+            ],
+            "reason": "Excel数据整理有证据，但SQL缺失。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 4,
+            "evidence_claim_ids": [
+              "AE4",
+              "AE5",
+              "AE6"
+            ],
+            "reason": "两次纠正后职责、范围和主管决策边界可追溯。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AE4",
+              "AE5",
+              "AE6"
+            ],
+            "reason": "字段整理、重复项提示和每周使用明确，业务收益未知。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "AE4",
+              "AE5",
+              "AE6"
+            ],
+            "reason": "相关经历重心明确，完整职业材料未提供；不因隐去日期补造信息。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "AE4",
+              "AE5",
+              "AE6"
+            ],
+            "reason": "语言精炼，参与及主管方案边界一致。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "未生成PDF。"
+          }
+        ]
+      }
+    ],
+    "remaining_risks": [
+      "只有已提供行政经历，公司与其他完整材料未知。",
+      "SQL缺失，收入或效率变化未知。",
+      "任职日期按用户选择省略，不补造。",
+      "没有PDF、人工视觉或阅读顺序验证。"
+    ]
+  },
+  "observations": [
+    {
+      "criterion": "两次事实修正",
+      "result": "observed",
+      "evidence": "A02三店由A05两店替换；A08主导由A09参与/主管方案替换，三个最终版本均引用新事实。"
+    },
+    {
+      "criterion": "没有指标仍推进",
+      "result": "observed",
+      "evidence": "三轮均输出实际改写，采用每周使用和明确交付作证据，没有追问提升百分比。"
+    },
+    {
+      "criterion": "双语和双岗位",
+      "result": "observed",
+      "evidence": "数据版突出字段/重复项，运营版前置店长反馈；英文保留参与与主管方案，没有提升正式职称。"
+    },
+    {
+      "criterion": "能力缺口",
+      "result": "limited",
+      "evidence": "数据岗SQL硬缺口未消除；完整周报负责与更广分析能力未证明，不能从结构检查推导匹配成功。"
+    }
+  ]
+}

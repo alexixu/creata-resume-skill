@@ -22,6 +22,7 @@ git clone git@github.com:alexixu/creata-resume-skill.git ~/.codex/skills/creata-
 - 真实经历账本、岗位要求映射、成果改写；没有数据也能表达交付价值，不编造成绩。
 - 六维评价：目标匹配 25、证据可信度 25、成果价值 20、结构 10、表达 10、排版提取 10。每项说明依据；未评项不冒充总分。
 - 两种版式：保留图标的 `classic` 和去装饰、顺序文本的 `plain`。生成 JSON、Markdown、TXT、LaTeX，以及有依赖时的 PDF。
+- 多版本可引用同一事实，修正后同步中英文和岗位稿，旧导出标为过期；[使用方式](references/versions.md)。
 
 方法参考两部经典求职/简历写作书籍的公开介绍与出版社配套材料，并结合 CareerOneStop 的格式建议；来源与改编边界见 [方法依据](references/sources.md)。评分是编辑工具，不预测录用或保证 ATS 通过。
 
@@ -34,6 +35,10 @@ python3 scripts/resume.py roles
 python3 scripts/resume.py init --role design --language zh --output /tmp/my-resume/profile.json
 # 在聊天中补齐并确认 profile.json 后：
 python3 scripts/resume.py render /tmp/my-resume/profile.json --out /tmp/my-resume/v1 --theme classic --pdf
+# 调整生成目录中的源码或样式后，保留修改并重新编译：
+python3 scripts/resume.py rebuild /tmp/my-resume/v1
+# 只复验现有 PDF（文件变更后需先 rebuild）：
+python3 scripts/resume.py check /tmp/my-resume/v1
 ```
 
 默认一页 A4，未确认内容只能用 `--draft` 输出草稿。PDF 生成后还需要查看渲染图及文本顺序。[数据合约和完整步骤](references/delivery.md)

@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "notice": "FICTIONAL TEACHING DATA. Do not attribute these facts to a real person.",
+  "facts": [
+    {
+      "id": "store_count",
+      "source": "虚构访谈 F01：示例候选人称报表模板用于 3 家门店；仅为测试资料。",
+      "status": "confirmed",
+      "value": 3,
+      "expressions": {
+        "zh": "{value}",
+        "en": "{value}"
+      }
+    },
+    {
+      "id": "responsibility",
+      "source": "虚构访谈 F02：示例候选人称主导报表模板整理；仅为测试资料。",
+      "status": "confirmed",
+      "value": "lead",
+      "expressions": {
+        "zh": {
+          "lead": "主导",
+          "contributor": "参与"
+        },
+        "en": {
+          "lead": "Led",
+          "contributor": "Contributed to"
+        }
+      }
+    }
+  ],
+  "versions": [
+    {
+      "id": "operations-zh",
+      "resume": {
+        "language": "zh",
+        "role": "operations",
+        "name": "示例候选人",
+        "headline": "运营岗位 / 虚构示例",
+        "contacts": [
+          "sample@example.com"
+        ],
+        "facts_confirmed": true,
+        "sections": [
+          {
+            "id": "summary",
+            "title": "个人概览",
+            "entries": [
+              {
+                "bullets": [
+                  "由共享事实生成概览"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "title": "精选项目",
+            "entries": [
+              {
+                "heading": "虚构门店报表项目",
+                "date": "2025.03–2025.06",
+                "bullets": [
+                  "由共享事实生成经历"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "bindings": [
+        {
+          "path": "sections[0].entries[0].bullets[0]",
+          "template": "门店报表经历：{responsibility}整理，覆盖 {stores} 家门店。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        },
+        {
+          "path": "sections[1].entries[0].bullets[0]",
+          "template": "{responsibility}报表模板整理，为 {stores} 家门店统一字段与交接步骤。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "summary": [
+        {
+          "template": "门店报表经历：{responsibility}整理，覆盖 {stores} 家门店。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "basis": [
+        {
+          "requirement": "整理需求或运营字段",
+          "template": "{responsibility}报表模板整理，为 {stores} 家门店统一字段与交接步骤。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product-zh",
+      "resume": {
+        "language": "zh",
+        "role": "product",
+        "name": "示例候选人",
+        "headline": "产品岗位 / 虚构示例",
+        "contacts": [
+          "sample@example.com"
+        ],
+        "facts_confirmed": true,
+        "sections": [
+          {
+            "id": "summary",
+            "title": "个人概览",
+            "entries": [
+              {
+                "bullets": [
+                  "由共享事实生成概览"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "title": "精选项目",
+            "entries": [
+              {
+                "heading": "虚构门店报表项目",
+                "date": "2025.03–2025.06",
+                "bullets": [
+                  "由共享事实生成经历"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "bindings": [
+        {
+          "path": "sections[0].entries[0].bullets[0]",
+          "template": "门店报表经历：{responsibility}整理，覆盖 {stores} 家门店。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        },
+        {
+          "path": "sections[1].entries[0].bullets[0]",
+          "template": "{responsibility}门店报表需求梳理，整理 {stores} 家门店的字段定义与验收步骤。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "summary": [
+        {
+          "template": "门店报表经历：{responsibility}整理，覆盖 {stores} 家门店。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "basis": [
+        {
+          "requirement": "整理需求或运营字段",
+          "template": "{responsibility}门店报表需求梳理，整理 {stores} 家门店的字段定义与验收步骤。",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ]
+    },
+    {
+      "id": "operations-en",
+      "resume": {
+        "language": "en",
+        "role": "operations",
+        "name": "Sample Candidate",
+        "headline": "Operations / Fictional Example",
+        "contacts": [
+          "sample@example.com"
+        ],
+        "facts_confirmed": true,
+        "sections": [
+          {
+            "id": "summary",
+            "title": "Summary",
+            "entries": [
+              {
+                "bullets": [
+                  "由共享事实生成概览"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "title": "Selected Projects",
+            "entries": [
+              {
+                "heading": "Fictional Store Reporting Project",
+                "date": "2025.03–2025.06",
+                "bullets": [
+                  "由共享事实生成经历"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "bindings": [
+        {
+          "path": "sections[0].entries[0].bullets[0]",
+          "template": "Store reporting experience: {responsibility} standardization for {stores} stores.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        },
+        {
+          "path": "sections[1].entries[0].bullets[0]",
+          "template": "{responsibility} report template standardization for {stores} stores, documenting fields and handover steps.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "summary": [
+        {
+          "template": "Store reporting experience: {responsibility} standardization for {stores} stores.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "basis": [
+        {
+          "requirement": "Document requirements or operational fields",
+          "template": "{responsibility} report template standardization for {stores} stores, documenting fields and handover steps.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product-en",
+      "resume": {
+        "language": "en",
+        "role": "product",
+        "name": "Sample Candidate",
+        "headline": "Product / Fictional Example",
+        "contacts": [
+          "sample@example.com"
+        ],
+        "facts_confirmed": true,
+        "sections": [
+          {
+            "id": "summary",
+            "title": "Summary",
+            "entries": [
+              {
+                "bullets": [
+                  "由共享事实生成概览"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "title": "Selected Projects",
+            "entries": [
+              {
+                "heading": "Fictional Store Reporting Project",
+                "date": "2025.03–2025.06",
+                "bullets": [
+                  "由共享事实生成经历"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "bindings": [
+        {
+          "path": "sections[0].entries[0].bullets[0]",
+          "template": "Store reporting experience: {responsibility} standardization for {stores} stores.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        },
+        {
+          "path": "sections[1].entries[0].bullets[0]",
+          "template": "{responsibility} store reporting requirements for {stores} stores, documenting field definitions and acceptance steps.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "summary": [
+        {
+          "template": "Store reporting experience: {responsibility} standardization for {stores} stores.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ],
+      "basis": [
+        {
+          "requirement": "Document requirements or operational fields",
+          "template": "{responsibility} store reporting requirements for {stores} stores, documenting field definitions and acceptance steps.",
+          "refs": {
+            "responsibility": "responsibility",
+            "stores": "store_count"
+          }
+        }
+      ]
+    }
+  ]
+}

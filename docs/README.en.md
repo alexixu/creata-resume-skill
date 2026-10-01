@@ -20,8 +20,14 @@ Python 3.9+ is sufficient for editable output. PDF generation additionally requi
 python3 scripts/resume.py init --role software --language en --output /tmp/my-resume/profile.json
 # Fill and confirm real facts first, then:
 python3 scripts/resume.py render /tmp/my-resume/profile.json --out /tmp/my-resume/v1 --theme plain --pdf
+# Preserve edits to the generated source/style and rebuild:
+python3 scripts/resume.py rebuild /tmp/my-resume/v1
+# Recheck the existing PDF; changed inputs require a rebuild first:
+python3 scripts/resume.py check /tmp/my-resume/v1
 ```
 
 Outputs include JSON, Markdown, plain text, LaTeX and optionally PDF. `classic` retains section icons; `plain` uses sequential text without decorative icons. Both need visual and text-order review. Unconfirmed drafts require `--draft`. [Schema and delivery steps](../references/delivery.md).
+
+For bilingual or role-specific versions, [shared facts](../references/versions.md) can generate linked drafts and mark earlier exports stale after a correction. Fact sources and confirmation remain editorial responsibilities; synchronization does not verify truth or score a resume.
 
 The original bilingual templates remain available through `make -B`, producing `dist/resume-en.pdf` and `dist/resume-zh.pdf`. Test helpers with `python3 -m unittest discover -s tests -v`. Store personal outputs outside this public repository. Bundled fonts and icons retain their upstream notices.

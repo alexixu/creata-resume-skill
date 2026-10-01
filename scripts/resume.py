@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Create resume skeletons and render reviewed data. Python standard library only."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -41,6 +42,13 @@ def require_text(value, label, allow_empty=True):
         raise ValueError(f'{label} contains unsupported control characters')
 
 
+def reject_unknown_fields(data, allowed, path=''):
+    for key in data:
+        if key not in allowed:
+            field = f'{path}.{key}' if path else key
+            raise ValueError(f'{field}: unknown field')
+
+
 def iter_visible_fields(data):
     """Yield stable source paths in the field order used by PDF presence checks."""
     for key in ('name', 'headline'):
@@ -63,6 +71,14 @@ def iter_visible_fields(data):
 def validate(data, draft=False):
     if not isinstance(data, dict):
         raise ValueError('resume must be a JSON object')
+    reject_unknown_fields(data, {'language', 'role', 'name', 'headline', 'contacts',
+                                 'facts_confirmed', 'sections', 'example_notice'})
+    if 'role' in data:
+        require_text(data['role'], 'role', allow_empty=False)
+        if data['role'] not in ROLES:
+            raise ValueError('role must be a known profession; use the roles command to list choices')
+    if 'example_notice' in data:
+        require_text(data['example_notice'], 'example_notice')
     if data.get('language') not in ('zh', 'en'):
         raise ValueError('language must be zh or en')
     for key in ('name', 'headline'):
@@ -83,6 +99,7 @@ def validate(data, draft=False):
         path = f'sections[{index}]'
         if not isinstance(section, dict):
             raise ValueError(f'{path} must be an object')
+        reject_unknown_fields(section, {'id', 'title', 'entries'}, path)
         key = section.get('id')
         require_text(key, f'{path}.id', allow_empty=False)
         if key in seen:
@@ -96,6 +113,7 @@ def validate(data, draft=False):
             entry_path = f'{path}.entries[{entry_index}]'
             if not isinstance(entry, dict):
                 raise ValueError(f'{entry_path} must be an object')
+            reject_unknown_fields(entry, {'heading', 'date', 'bullets'}, entry_path)
             for field in ('heading', 'date'):
                 require_text(entry.get(field, ''), f'{entry_path}.{field}')
             bullets = entry.get('bullets', [])
@@ -225,21 +243,103 @@ def text_is_present(value, extracted):
     return re.search(r'(?:-\n)?'.join(chars), searchable) is not None
 
 
-def build_pdf(out, max_pages):
+def file_hash(path):
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open('rb') as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def dependency_names(out):
+    """Read Tectonic's one-dependency-per-continuation-line Makefile output.
+
+    Paths can contain spaces; shell-style word splitting would corrupt them.
+    Keep symlink paths rather than resolving their targets so retargeting a
+    private dependency also invalidates the recorded build.
+    """
+    rules = (out / 'build-dependencies.mk').read_text()
+    _, separator, body = rules.partition(' : ')
+    if not separator:
+        raise ValueError('cannot read Tectonic build-dependencies.mk; run rebuild again')
+    names = {'resume.json', 'resume.tex', 'resume.pdf', 'build.log', 'build-dependencies.mk'}
+    for line in body.splitlines():
+        value = line.strip().removesuffix(' \\')
+        if not value:
+            continue
+        path = Path(os.path.abspath(out / value))
+        try:
+            name = str(path.relative_to(out))
+        except ValueError:
+            name = str(path)
+        names.add(name)
+    return sorted(names)
+
+
+def snapshot_build(out):
+    hashes = {name: file_hash(out / name) for name in dependency_names(out)}
+    missing = [name for name, digest in hashes.items() if digest is None]
+    if missing:
+        raise ValueError('build dependency missing: ' + ', '.join(missing))
+    state = {'version': 1, 'hash_algorithm': 'sha256', 'input_hashes': hashes}
+    (out / 'build-state.json').write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n')
+    return hashes
+
+
+def verify_build_state(out, report):
+    try:
+        state = json.loads((out / 'build-state.json').read_text())
+    except (OSError, ValueError) as error:
+        raise ValueError('no readable build-state.json; run rebuild before check') from error
+    hashes = state.get('input_hashes') if isinstance(state, dict) else None
+    required = {'resume.json', 'resume.tex', 'resume.pdf', 'build.log', 'build-dependencies.mk'}
+    if (not isinstance(hashes, dict) or not required.issubset(hashes)
+            or state.get('version') != 1 or state.get('hash_algorithm') != 'sha256'
+            or any(not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value)
+                   for value in hashes.values())):
+        raise ValueError('invalid build-state.json; run rebuild before check')
+    current = {name: file_hash(out / name) for name in hashes}
+    report['input_hashes'] = current
+    changed = [name for name in hashes if current[name] != hashes[name]]
+    if changed:
+        report['stale_files'] = changed
+        raise ValueError('build is stale or files are missing: ' + ', '.join(changed)
+                         + '; run rebuild before check')
+    return current
+
+
+def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
+    out = out.resolve()
     report = {'max_pages': max_pages, 'visual_review': 'NOT_RUN', 'reading_order_review': 'NOT_RUN',
-              'ats_compatibility': 'NOT_CERTIFIED'}
+              'ats_compatibility': 'NOT_CERTIFIED', 'hash_algorithm': 'sha256',
+              'operation': 'rebuild' if compile_pdf else 'check'}
     completed = []
     build_log = ''
     stage = 'dependencies'
     try:
-        for binary in ('tectonic', 'pdfinfo', 'pdftotext'):
+        if draft is not None:
+            stage = 'source_validation'
+            validate(json.loads((out / 'resume.json').read_text()), draft=draft)
+            completed.append(stage)
+        stage = 'dependencies'
+        binaries = ('tectonic', 'pdfinfo', 'pdftotext') if compile_pdf else ('pdfinfo', 'pdftotext')
+        for binary in binaries:
             if not shutil.which(binary):
                 raise ValueError(f'{binary} is required for --pdf; editable files were generated')
         completed.append(stage)
-        stage = 'compile'
-        build_log = run(['tectonic', '-X', 'compile', 'resume.tex', '--outdir', '.'], out)
-        (out / 'build.log').write_text(build_log)
-        completed.append(stage)
+        if compile_pdf:
+            stage = 'compile'
+            build_log = run(['tectonic', '-X', 'compile', 'resume.tex', '--outdir', '.',
+                             '--makefile-rules', 'build-dependencies.mk'], out)
+            (out / 'build.log').write_text(build_log)
+            completed.append(stage)
+        else:
+            stage = 'freshness'
+            verify_build_state(out, report)
+            build_log = (out / 'build.log').read_text()
+            completed.append(stage)
         stage = 'pdfinfo'
         info = run(['pdfinfo', 'resume.pdf'], out)
         page_match = re.search(r'^Pages:\s+(\d+)', info, re.M)
@@ -259,14 +359,24 @@ def build_pdf(out, max_pages):
         stage = 'source_read'
         source = json.loads((out / 'resume.json').read_text())
         completed.append(stage)
+        stage = 'provenance' if compile_pdf else 'freshness'
+        if compile_pdf:
+            report['input_hashes'] = snapshot_build(out)
+            completed.append(stage)
+        else:
+            # Recheck after reading the PDF in case an input changed during QA.
+            verify_build_state(out, report)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         output = (error.stdout or '') if isinstance(error, subprocess.CalledProcessError) else ''
         diagnostic = f'\n[{stage} failed]\n{error}\n{output}'
-        (out / 'build.log').write_text(build_log + diagnostic)
+        if compile_pdf:
+            (out / 'build.log').write_text(build_log + diagnostic)
         report.update(status='FAILED', stage=stage, error=str(error),
                       failure_reasons=[f'{stage} failed: {error}'], completed_stages=completed)
         (out / 'qa.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
-        message = f'PDF {stage} failed: {error}; inspect qa.json and build.log'
+        message = f'PDF {stage} failed: {error}; inspect qa.json'
+        if compile_pdf:
+            message += ' and build.log'
         raise ValueError(message + (f'\n{output}' if output else '')) from error
     expected = list(iter_visible_fields(source))
     missing = [index for index, (_, value) in enumerate(expected)
@@ -285,6 +395,10 @@ def build_pdf(out, max_pages):
         reasons.append('missing text at ' + ', '.join(missing_fields))
     if warnings:
         reasons.append(f'{len(warnings)} layout or missing-character warning(s); inspect build.log')
+    if draft:
+        report['draft_marked'] = text_is_present('DRAFT / 草稿', extracted)
+        if not report['draft_marked']:
+            reasons.append('draft marker missing: existing source must visibly include DRAFT / 草稿')
     completed.append('automated_checks')
     report.update(status='FAILED' if reasons else 'PASSED', stage='automated_checks',
                   completed_stages=completed, failure_reasons=reasons,
@@ -313,6 +427,15 @@ def main():
     render.add_argument('--draft', action='store_true')
     render.add_argument('--pdf', action='store_true')
     render.add_argument('--max-pages', type=int, default=1, help='change only for user-requested page counts')
+    for command, help_text in (
+        ('rebuild', 'compile existing editable files and refresh PDF QA'),
+        ('check', 'check an unchanged existing PDF without compiling'),
+    ):
+        existing = sub.add_parser(command, help=help_text)
+        existing.add_argument('directory', type=Path)
+        existing.add_argument('--draft', action='store_true', help='allow unconfirmed draft source data')
+        existing.add_argument('--max-pages', type=int, default=1,
+                              help='change only for user-requested page counts')
     args = parser.parse_args()
     if args.command == 'roles':
         for key, value in ROLES.items():
@@ -323,6 +446,15 @@ def main():
             json.dump(skeleton(args.role, args.language), handle, ensure_ascii=False, indent=2)
             handle.write('\n')
         print(args.output.resolve())
+    elif args.command in ('rebuild', 'check'):
+        if args.max_pages < 1:
+            raise ValueError('--max-pages must be positive')
+        out = args.directory.resolve()
+        if not out.is_dir():
+            raise ValueError('directory must be an existing resume output directory')
+        print(json.dumps(build_pdf(out, args.max_pages, compile_pdf=args.command == 'rebuild',
+                                   draft=args.draft), ensure_ascii=False))
+        print(out)
     else:
         if args.max_pages < 1:
             raise ValueError('--max-pages must be positive')
@@ -341,7 +473,7 @@ def main():
         (out / 'resume.txt').write_text(render_text(data, False, args.draft))
         (out / 'resume.tex').write_text(render_tex(data, args.theme, args.draft))
         if args.pdf:
-            print(json.dumps(build_pdf(out, args.max_pages), ensure_ascii=False))
+            print(json.dumps(build_pdf(out, args.max_pages, draft=args.draft), ensure_ascii=False))
         print(out)
 
 

@@ -1,0 +1,677 @@
+{
+  "schema_version": 1,
+  "id": "graduate-frontend",
+  "title": "应届无实习：从校园项目开始",
+  "execution": {
+    "mode": "same_model_directed_simulation",
+    "fictional": true,
+    "independent_review": false,
+    "real_jobseeker": false,
+    "blind": false,
+    "user_role": "parent agent sends one fictional input at a time",
+    "assistant_role": "skill_trial agent responds before seeing later user inputs",
+    "pdf_executed": false
+  },
+  "limitations": [
+    "两个角色均为同模型代理，非真人求职者、非独立或盲测。",
+    "记录保留本次实际逐轮生成输出；结构检查不证明事实真实或写作质量。"
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "user": "我今年应届，没有实习。做过一个校园活动报名网站，想投前端开发。我不太会写简历，先帮我写起来。",
+      "assistant": "先把校园项目放在重点位置，实习经历暂不设空章节。根据你现在提供的信息，可以先写成：\n\n求职方向：前端开发\n\n个人概览：应届毕业生，有校园活动报名网站项目经历。\n\n校园活动报名网站｜项目经历\n- 参与校园活动报名网站制作。\n\n这还是项目草稿，目前不写未确认的技术栈、上线情况或使用人数。接下来只补两点：\n1. 你自己做了哪些页面或功能，用了什么技术？\n2. 网站有没有同学实际用过，或者有可展示的页面、代码？",
+      "claims": [
+        {
+          "text": "应届毕业生，有校园活动报名网站项目经历。",
+          "fact_ids": [
+            "G01",
+            "G02"
+          ]
+        },
+        {
+          "text": "参与校园活动报名网站制作。",
+          "fact_ids": [
+            "G02"
+          ]
+        },
+        {
+          "text": "求职方向：前端开发",
+          "fact_ids": [
+            "G03"
+          ]
+        }
+      ],
+      "questions": [
+        "你自己做了哪些页面或功能，用了什么技术？",
+        "网站有没有同学实际用过，或者有可展示的页面、代码？"
+      ],
+      "progress": "先交付定位、概览和保守项目初稿，未补技术栈或人数。"
+    },
+    {
+      "number": 2,
+      "user": "我自己用 Vue 和 JavaScript 做了活动列表、报名表单和手机号格式校验。后端是同学写的。社团两次活动用了，多少人报名我不知道，代码暂时不能公开。我想投的 JD A 要求 Vue、组件开发、接口协作；另一个 JD B 是 QA 实习，要求测试用例、缺陷记录、基本脚本。先都帮我看看适合怎么写。",
+      "assistant": "前端岗位目前有更直接的经历证据；QA 实习可以保留与输入检查有关的实现经历，但还不能写成做过测试用例或缺陷管理。\n\n前端版项目要点\n- 使用 Vue 和 JavaScript 实现活动列表、报名表单及手机号格式校验，后端由同学负责。\n- 网站用于社团两次活动。\n\nQA 实习版项目要点\n- 为校园报名表单实现手机号格式校验，处理表单输入规则。\n- 使用 JavaScript 完成活动列表与报名表单功能，项目用于社团两次活动。\n\n岗位对应关系：\n- JD A：Vue 有直接证据；组件开发尚未说明；已知前后端分工，但具体接口协作还未说明。\n- JD B：手机号校验实现可作相关项目材料；测试用例、缺陷记录仍是缺口。JavaScript 实践可支持编程基础，不能直接写成测试脚本经验。\n\n不写未知报名人数，也不要求公开代码。只再确认两点：\n1. 前端方面是否做过可复用组件，或自己对接过接口？\n2. 对手机号校验有没有写过测试用例、记录过缺陷？没有也可以。",
+      "claims": [
+        {
+          "text": "使用 Vue 和 JavaScript 实现活动列表、报名表单及手机号格式校验，后端由同学负责。",
+          "fact_ids": [
+            "G04",
+            "G05"
+          ]
+        },
+        {
+          "text": "网站用于社团两次活动。",
+          "fact_ids": [
+            "G06"
+          ]
+        },
+        {
+          "text": "为校园报名表单实现手机号格式校验，处理表单输入规则。",
+          "fact_ids": [
+            "G04"
+          ]
+        },
+        {
+          "text": "使用 JavaScript 完成活动列表与报名表单功能，项目用于社团两次活动。",
+          "fact_ids": [
+            "G04",
+            "G06"
+          ]
+        }
+      ],
+      "questions": [
+        "前端方面是否做过可复用组件，或自己对接过接口？",
+        "对手机号校验有没有写过测试用例、记录过缺陷？没有也可以。"
+      ],
+      "progress": "生成前端和 QA 两种选材顺序，明确 Vue 与 QA 证据强弱，未补人数、测试或接口职责。"
+    },
+    {
+      "number": 3,
+      "user": "报名表单拆了一个复用组件，我对接了同学给的报名提交接口，处理了超时提示。没有正式测试用例和缺陷记录。还有刚才我说错了，是一次活动用了，不是两次。请给我两版最终正文和你能评的分数，不要再问了。联系方式先用 fictional.student@example.com，姓名林示例，毕业时间2026年6月；学校就写示例学院，不要补其他学历信息。",
+      "assistant": "已把“两次活动”改为“一次”，两版都保留后端由同学负责的边界。以下正文不补学历、报名人数或测试职责。\n\n前端开发版\n林示例\nfictional.student@example.com\n求职方向：前端开发\n\n教育背景\n示例学院｜2026年6月毕业\n\n校园活动报名网站｜项目经历\n- 使用 Vue 和 JavaScript 实现活动列表、报名表单及手机号格式校验，将报名表单拆为可复用组件。\n- 对接同学提供的报名提交接口并实现超时提示；后端由同学负责。\n- 网站用于社团一次活动。\n\nQA 实习版\n林示例\nfictional.student@example.com\n求职方向：QA 实习\n\n教育背景\n示例学院｜2026年6月毕业\n\n校园活动报名网站｜相关项目\n- 负责报名表单的手机号格式校验与接口超时提示。\n- 使用 Vue 和 JavaScript 开发活动列表、报名表单及复用组件，并对接同学提供的报名提交接口。\n- 网站用于社团一次活动，后端由同学负责。\n\n基于你提供的 JD 片段，正文暂评如下；每格为档位/4：\n维度（权重）｜前端版｜QA 版｜依据\n目标匹配（25）｜4｜1｜前端三项要求均有具体项目证据；QA 缺正式测试用例和缺陷记录，JavaScript 开发仅部分支持脚本基础。\n证据与可信度（25）｜3｜3｜动作、团队归属和一次实际使用均有本轮来源；项目起止时间未提供。\n成果与价值（20）｜3｜3｜有组件、接口/输入处理及实际使用证据，暂缺技术选择或验收过程细节；不因没有人数机械扣分。\n结构与取舍（10）｜3｜3｜教育和相关项目清楚，分别突出组件/接口与输入/超时处理；项目日期尚缺。\n表达质量（10）｜4｜4｜具体动作、技术、分工和使用次数一致。\n排版与提取（10）｜未评｜未评｜本轮没有 PDF。\n\n按量表加权：前端版 76.25/90，QA 版 57.5/90；均为正文暂评，不换算成完整总分，也不代表录用概率。\nJD 对应：前端版第一条支持 Vue、组件开发，第二条支持接口协作；QA 版第一条是相关实现经历，第二条支持 JavaScript 基础，不能替代正式测试用例、缺陷记录或测试脚本证据。\n后续最有价值的补充是项目日期、组件/接口的具体取舍，以及真实发生过的测试材料；没有就继续保留缺口，不补写。本轮不再追问。PDF、视觉和阅读顺序均未验证。",
+      "claims": [
+        {
+          "id": "GF1",
+          "text": "林示例",
+          "fact_ids": [
+            "G11"
+          ]
+        },
+        {
+          "id": "GF2",
+          "text": "fictional.student@example.com",
+          "fact_ids": [
+            "G11"
+          ]
+        },
+        {
+          "id": "GF3",
+          "text": "示例学院｜2026年6月毕业",
+          "fact_ids": [
+            "G12"
+          ]
+        },
+        {
+          "id": "GF4",
+          "text": "使用 Vue 和 JavaScript 实现活动列表、报名表单及手机号格式校验，将报名表单拆为可复用组件。",
+          "fact_ids": [
+            "G04",
+            "G08"
+          ]
+        },
+        {
+          "id": "GF5",
+          "text": "对接同学提供的报名提交接口并实现超时提示；后端由同学负责。",
+          "fact_ids": [
+            "G05",
+            "G08"
+          ]
+        },
+        {
+          "id": "GF6",
+          "text": "网站用于社团一次活动。",
+          "fact_ids": [
+            "G10"
+          ]
+        },
+        {
+          "id": "GQ1",
+          "text": "林示例",
+          "fact_ids": [
+            "G11"
+          ]
+        },
+        {
+          "id": "GQ2",
+          "text": "fictional.student@example.com",
+          "fact_ids": [
+            "G11"
+          ]
+        },
+        {
+          "id": "GQ3",
+          "text": "示例学院｜2026年6月毕业",
+          "fact_ids": [
+            "G12"
+          ]
+        },
+        {
+          "id": "GQ4",
+          "text": "负责报名表单的手机号格式校验与接口超时提示。",
+          "fact_ids": [
+            "G04",
+            "G08"
+          ]
+        },
+        {
+          "id": "GQ5",
+          "text": "使用 Vue 和 JavaScript 开发活动列表、报名表单及复用组件，并对接同学提供的报名提交接口。",
+          "fact_ids": [
+            "G04",
+            "G08"
+          ]
+        },
+        {
+          "id": "GQ6",
+          "text": "网站用于社团一次活动，后端由同学负责。",
+          "fact_ids": [
+            "G10",
+            "G05"
+          ]
+        }
+      ],
+      "questions": [],
+      "progress": "按修正的一次使用交付两个版本，完成有限范围暂评，未因 QA 缺口伪造测试工作。"
+    }
+  ],
+  "facts": [
+    {
+      "id": "G01",
+      "text": "今年应届，没有实习",
+      "source_turn": 1,
+      "source_quote": "我今年应届，没有实习。",
+      "status": "user_stated"
+    },
+    {
+      "id": "G02",
+      "text": "做过校园活动报名网站",
+      "source_turn": 1,
+      "source_quote": "做过一个校园活动报名网站",
+      "status": "user_stated"
+    },
+    {
+      "id": "G03",
+      "text": "求职方向为前端开发",
+      "source_turn": 1,
+      "source_quote": "想投前端开发",
+      "status": "user_stated"
+    },
+    {
+      "id": "G04",
+      "text": "本人使用 Vue 和 JavaScript 实现活动列表、报名表单、手机号格式校验",
+      "source_turn": 2,
+      "source_quote": "我自己用 Vue 和 JavaScript 做了活动列表、报名表单和手机号格式校验。",
+      "status": "user_stated"
+    },
+    {
+      "id": "G05",
+      "text": "后端由同学实现",
+      "source_turn": 2,
+      "source_quote": "后端是同学写的。",
+      "status": "user_stated"
+    },
+    {
+      "id": "G06",
+      "text": "网站用于社团两次活动，报名人数未知",
+      "source_turn": 2,
+      "source_quote": "社团两次活动用了，多少人报名我不知道",
+      "status": "superseded",
+      "superseded_by": "G10"
+    },
+    {
+      "id": "G07",
+      "text": "代码暂不能公开",
+      "source_turn": 2,
+      "source_quote": "代码暂时不能公开",
+      "status": "user_stated"
+    },
+    {
+      "id": "G08",
+      "text": "报名表单有复用组件；本人对接报名提交接口并处理超时提示",
+      "source_turn": 3,
+      "source_quote": "报名表单拆了一个复用组件，我对接了同学给的报名提交接口，处理了超时提示。",
+      "status": "user_stated"
+    },
+    {
+      "id": "G09",
+      "text": "没有正式测试用例和缺陷记录",
+      "source_turn": 3,
+      "source_quote": "没有正式测试用例和缺陷记录。",
+      "status": "user_stated"
+    },
+    {
+      "id": "G10",
+      "text": "实际一次活动使用，并非两次",
+      "source_turn": 3,
+      "source_quote": "是一次活动用了，不是两次。",
+      "status": "user_stated",
+      "supersedes": [
+        "G06"
+      ]
+    },
+    {
+      "id": "G11",
+      "text": "姓名林示例，联系方式为虚构地址",
+      "source_turn": 3,
+      "source_quote": "联系方式先用 fictional.student@example.com，姓名林示例",
+      "status": "user_stated"
+    },
+    {
+      "id": "G12",
+      "text": "示例学院，2026年6月毕业；没有授权补充学历信息",
+      "source_turn": 3,
+      "source_quote": "毕业时间2026年6月；学校就写示例学院，不要补其他学历信息。",
+      "status": "user_stated"
+    }
+  ],
+  "status": "completed",
+  "targets": [
+    {
+      "id": "jd-a",
+      "title": "前端开发",
+      "source_turn": 2,
+      "source_quote": "JD A 要求 Vue、组件开发、接口协作",
+      "requirements": [
+        {
+          "id": "G-A1",
+          "text": "Vue",
+          "kind": "requirement"
+        },
+        {
+          "id": "G-A2",
+          "text": "组件开发",
+          "kind": "requirement"
+        },
+        {
+          "id": "G-A3",
+          "text": "接口协作",
+          "kind": "requirement"
+        }
+      ]
+    },
+    {
+      "id": "jd-b",
+      "title": "QA 实习",
+      "source_turn": 2,
+      "source_quote": "JD B 是 QA 实习，要求测试用例、缺陷记录、基本脚本",
+      "requirements": [
+        {
+          "id": "G-B1",
+          "text": "测试用例",
+          "kind": "requirement"
+        },
+        {
+          "id": "G-B2",
+          "text": "缺陷记录",
+          "kind": "requirement"
+        },
+        {
+          "id": "G-B3",
+          "text": "基本脚本",
+          "kind": "requirement"
+        }
+      ]
+    }
+  ],
+  "deliverables": {
+    "scope": "confirmed_text_pdf_unverified",
+    "versions": [
+      {
+        "id": "graduate-front",
+        "target_id": "jd-a",
+        "language": "zh",
+        "text": "林示例\nfictional.student@example.com\n求职方向：前端开发\n\n教育背景\n示例学院｜2026年6月毕业\n\n校园活动报名网站｜项目经历\n- 使用 Vue 和 JavaScript 实现活动列表、报名表单及手机号格式校验，将报名表单拆为可复用组件。\n- 对接同学提供的报名提交接口并实现超时提示；后端由同学负责。\n- 网站用于社团一次活动。",
+        "claims": [
+          {
+            "id": "GF1",
+            "text": "林示例",
+            "fact_ids": [
+              "G11"
+            ]
+          },
+          {
+            "id": "GF2",
+            "text": "fictional.student@example.com",
+            "fact_ids": [
+              "G11"
+            ]
+          },
+          {
+            "id": "GF3",
+            "text": "示例学院｜2026年6月毕业",
+            "fact_ids": [
+              "G12"
+            ]
+          },
+          {
+            "id": "GF4",
+            "text": "使用 Vue 和 JavaScript 实现活动列表、报名表单及手机号格式校验，将报名表单拆为可复用组件。",
+            "fact_ids": [
+              "G04",
+              "G08"
+            ]
+          },
+          {
+            "id": "GF5",
+            "text": "对接同学提供的报名提交接口并实现超时提示；后端由同学负责。",
+            "fact_ids": [
+              "G05",
+              "G08"
+            ]
+          },
+          {
+            "id": "GF6",
+            "text": "网站用于社团一次活动。",
+            "fact_ids": [
+              "G10"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "graduate-qa",
+        "target_id": "jd-b",
+        "language": "zh",
+        "text": "林示例\nfictional.student@example.com\n求职方向：QA 实习\n\n教育背景\n示例学院｜2026年6月毕业\n\n校园活动报名网站｜相关项目\n- 负责报名表单的手机号格式校验与接口超时提示。\n- 使用 Vue 和 JavaScript 开发活动列表、报名表单及复用组件，并对接同学提供的报名提交接口。\n- 网站用于社团一次活动，后端由同学负责。",
+        "claims": [
+          {
+            "id": "GQ1",
+            "text": "林示例",
+            "fact_ids": [
+              "G11"
+            ]
+          },
+          {
+            "id": "GQ2",
+            "text": "fictional.student@example.com",
+            "fact_ids": [
+              "G11"
+            ]
+          },
+          {
+            "id": "GQ3",
+            "text": "示例学院｜2026年6月毕业",
+            "fact_ids": [
+              "G12"
+            ]
+          },
+          {
+            "id": "GQ4",
+            "text": "负责报名表单的手机号格式校验与接口超时提示。",
+            "fact_ids": [
+              "G04",
+              "G08"
+            ]
+          },
+          {
+            "id": "GQ5",
+            "text": "使用 Vue 和 JavaScript 开发活动列表、报名表单及复用组件，并对接同学提供的报名提交接口。",
+            "fact_ids": [
+              "G04",
+              "G08"
+            ]
+          },
+          {
+            "id": "GQ6",
+            "text": "网站用于社团一次活动，后端由同学负责。",
+            "fact_ids": [
+              "G10",
+              "G05"
+            ]
+          }
+        ]
+      }
+    ],
+    "jd_mappings": [
+      {
+        "target_id": "jd-a",
+        "requirement_id": "G-A1",
+        "status": "supported",
+        "fact_ids": [
+          "G04"
+        ],
+        "claim_ids": [
+          "GF4"
+        ],
+        "gap": ""
+      },
+      {
+        "target_id": "jd-a",
+        "requirement_id": "G-A2",
+        "status": "supported",
+        "fact_ids": [
+          "G08"
+        ],
+        "claim_ids": [
+          "GF4"
+        ],
+        "gap": ""
+      },
+      {
+        "target_id": "jd-a",
+        "requirement_id": "G-A3",
+        "status": "supported",
+        "fact_ids": [
+          "G08"
+        ],
+        "claim_ids": [
+          "GF5"
+        ],
+        "gap": ""
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "G-B1",
+        "status": "gap",
+        "fact_ids": [
+          "G09"
+        ],
+        "claim_ids": [],
+        "gap": "明确没有正式测试用例。"
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "G-B2",
+        "status": "gap",
+        "fact_ids": [
+          "G09"
+        ],
+        "claim_ids": [],
+        "gap": "明确没有缺陷记录。"
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "G-B3",
+        "status": "partial",
+        "fact_ids": [
+          "G04"
+        ],
+        "claim_ids": [
+          "GQ5"
+        ],
+        "gap": "JavaScript 开发支持编程基础，尚无测试脚本证据。"
+      }
+    ],
+    "assessments": [
+      {
+        "version_id": "graduate-front",
+        "scope": "provisional_text_only",
+        "assessed_score": 76.25,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 4,
+            "evidence_claim_ids": [
+              "GF4",
+              "GF5",
+              "GF6"
+            ],
+            "reason": "仅提供的三项前端要求均有对应项目证据。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 3,
+            "evidence_claim_ids": [
+              "GF4",
+              "GF5",
+              "GF6"
+            ],
+            "reason": "行动与归属有输入来源，项目起止时间仍缺。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "GF4",
+              "GF5",
+              "GF6"
+            ],
+            "reason": "有交付和一次实际使用，技术判断和验收细节仍有限。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "GF4",
+              "GF5",
+              "GF6"
+            ],
+            "reason": "角色重点明确，项目日期未给出。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "GF4",
+              "GF5",
+              "GF6"
+            ],
+            "reason": "动作、技术和个人团队归属具体一致。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "未生成 PDF。"
+          }
+        ]
+      },
+      {
+        "version_id": "graduate-qa",
+        "scope": "provisional_text_only",
+        "assessed_score": 57.5,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 1,
+            "evidence_claim_ids": [
+              "GQ4",
+              "GQ5",
+              "GQ6"
+            ],
+            "reason": "正式测试用例和缺陷记录明确缺失，只有相关实现和编程基础。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 3,
+            "evidence_claim_ids": [
+              "GQ4",
+              "GQ5",
+              "GQ6"
+            ],
+            "reason": "行动与归属有输入来源，项目起止时间仍缺。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "GQ4",
+              "GQ5",
+              "GQ6"
+            ],
+            "reason": "有交付和一次实际使用，技术判断和验收细节仍有限。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "GQ4",
+              "GQ5",
+              "GQ6"
+            ],
+            "reason": "角色重点明确，项目日期未给出。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "GQ4",
+              "GQ5",
+              "GQ6"
+            ],
+            "reason": "动作、技术和个人团队归属具体一致。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "未生成 PDF。"
+          }
+        ]
+      }
+    ],
+    "remaining_risks": [
+      "项目起止日期未提供。",
+      "报名人数未知，不使用未知人数或效益。",
+      "QA 核心测试材料缺失。",
+      "正文评分为本代理编辑判断；PDF、视觉和阅读顺序均未验证。"
+    ]
+  },
+  "observations": [
+    {
+      "criterion": "每轮可见进展",
+      "result": "observed",
+      "evidence": "第1轮保守初稿；第2轮两岗位选择；第3轮修正次数、正式正文及暂评。"
+    },
+    {
+      "criterion": "不重复索取已知资料",
+      "result": "observed",
+      "evidence": "未再问人数、代码公开和实习；第3轮无问题。"
+    },
+    {
+      "criterion": "事实修正及归属",
+      "result": "observed",
+      "evidence": "G06 被 G10 取代；两个最终版本仅写一次使用且保留后端同学归属。"
+    },
+    {
+      "criterion": "岗位实质差异",
+      "result": "limited",
+      "evidence": "前端优先组件及接口；QA 优先输入校验及超时，但事实池单一且缺正式测试经验，差异限于选材顺序。"
+    }
+  ]
+}

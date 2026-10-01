@@ -38,8 +38,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install PDF dependencies
         run: brew install tectonic poppler
-      - name: Test renderer behavior
+      - name: Test data and renderer behavior
         run: python3 -m unittest discover -s tests -v
+      - name: Check recorded conversation structure and references
+        run: python3 scripts/check_conversation_evals.py
+      - name: Validate and synchronize fictional fact versions
+        run: |
+          python3 scripts/facts.py check assets/examples/fact-workspace.json
+          python3 scripts/facts.py sync assets/examples/fact-workspace.json --out "$RUNNER_TEMP/resume-fact-review"
       - name: Build bilingual examples in both themes
         shell: bash
         run: |
@@ -47,6 +53,7 @@ jobs:
             for theme in classic plain; do
               python3 scripts/resume.py render "assets/examples/$language.json" \
                 --out "$RUNNER_TEMP/resume-review/$language-$theme" --theme "$theme" --pdf
+              python3 scripts/resume.py check "$RUNNER_TEMP/resume-review/$language-$theme"
             done
           done
       - name: Upload review artifacts

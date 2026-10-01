@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "id": "two-sentence-edit",
+  "title": "只改两句，不强制访谈或评分",
+  "scope": "two_sentence_edit",
+  "execution": {
+    "mode": "same_model_directed_simulation",
+    "fictional": true,
+    "independent_review": false,
+    "real_jobseeker": false,
+    "blind": false,
+    "user_role": "parent agent supplies fictional narrow edit input",
+    "assistant_role": "skill_trial agent generates the actual two-sentence response",
+    "pdf_executed": false
+  },
+  "limitations": [
+    "同模型代理的单轮定向模拟；非真人、非独立评审、非盲测。",
+    "仅验证局部改写范围，不评价完整简历效果。"
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "user": "只改这两句，不要访谈和打分：我做了报表。门店每周使用我整理的Excel销售台账。不要添加数字或别的内容。",
+      "assistant": "整理 Excel 销售台账并制作报表。\n整理后的台账供门店每周使用。",
+      "claims": [
+        {
+          "id": "N1",
+          "text": "整理 Excel 销售台账并制作报表。",
+          "fact_ids": [
+            "N01",
+            "N02"
+          ]
+        },
+        {
+          "id": "N2",
+          "text": "整理后的台账供门店每周使用。",
+          "fact_ids": [
+            "N02"
+          ]
+        }
+      ],
+      "questions": [],
+      "progress": "直接交付两句改写，没有提问、打分、补数字或增加其他经历。"
+    }
+  ],
+  "facts": [
+    {
+      "id": "N01",
+      "text": "本人做了报表",
+      "source_turn": 1,
+      "source_quote": "我做了报表。",
+      "status": "user_stated"
+    },
+    {
+      "id": "N02",
+      "text": "本人整理Excel销售台账，门店每周使用",
+      "source_turn": 1,
+      "source_quote": "门店每周使用我整理的Excel销售台账。",
+      "status": "user_stated"
+    }
+  ],
+  "targets": [],
+  "deliverables": {
+    "scope": "two_sentence_edit",
+    "versions": [
+      {
+        "id": "two-sentence-zh",
+        "target_id": null,
+        "language": "zh",
+        "text": "整理 Excel 销售台账并制作报表。\n整理后的台账供门店每周使用。",
+        "claims": [
+          {
+            "id": "N1",
+            "text": "整理 Excel 销售台账并制作报表。",
+            "fact_ids": [
+              "N01",
+              "N02"
+            ]
+          },
+          {
+            "id": "N2",
+            "text": "整理后的台账供门店每周使用。",
+            "fact_ids": [
+              "N02"
+            ]
+          }
+        ]
+      }
+    ],
+    "jd_mappings": [],
+    "assessments": [],
+    "remaining_risks": [
+      "仅提供局部改写，不构成完整简历或PDF验证。"
+    ]
+  },
+  "observations": [
+    {
+      "criterion": "遵从窄范围",
+      "result": "observed",
+      "evidence": "实际回复恰好两句，无问题、评分、新数字或其他履历内容。"
+    }
+  ],
+  "status": "completed"
+}

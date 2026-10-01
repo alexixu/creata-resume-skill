@@ -35,6 +35,8 @@ class PdfReportTests(unittest.TestCase):
 
             def run(command, cwd):
                 if command[0] == 'tectonic':
+                    (cwd / 'resume.pdf').write_bytes(b'fictional mock PDF')
+                    (cwd / 'build-dependencies.mk').write_text('resume.pdf : resume.tex\n')
                     return build_log
                 if command[0] == 'pdfinfo':
                     return f'Pages: {pages}\nPage size: {size} pts\n'

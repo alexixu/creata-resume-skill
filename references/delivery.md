@@ -42,7 +42,7 @@ python3 "$SKILL_ROOT/scripts/resume.py" render "$OUTPUT_ROOT/profile.json" --out
 
 `sections` 数组决定实际顺序，可增删自定义章节。空章节自动略过。`heading`、`date` 可省略；概览和技能可以只填 bullets。所有文本是纯文本，不能嵌 LaTeX、HTML 或 Markdown；脚本转义特殊字符。链接以可读文本显示，不自动生成超链接。
 
-输入错误会给出从零开始的字段路径，如 `sections[1].entries[1].bullets[2]`。普通 `【项目名称】` 可作正文；`【待确认：…】`、`【待填：…】`、职业句式中的 `【结果】` 等已知待填词，以及 TODO/TBD/YYYY 仍不能进入终稿。空章节的标题不参与正文占位符检查。粘贴的 CRLF 换行与其他空白一样会规范化为空格。
+输入错误会给出从零开始的字段路径，如 `sections[1].entries[1].bullets[2]`。顶层、章节和经历条目的未知键都会报错；`bullets` 误写为 `bullet` 不再静默忽略。`role` 可省略，提供时须为现有职业 ID；`example_notice` 仅用于虚构示例说明。普通 `【项目名称】` 可作正文；`【待确认：…】`、`【待填：…】`、职业句式中的 `【结果】` 等已知待填词，以及 TODO/TBD/YYYY 仍不能进入终稿。空章节的标题不参与正文占位符检查。粘贴的 CRLF 换行与其他空白一样会规范化为空格。
 
 生成的 LaTeX 使用 `literaltext` 类选项，保留英文撇号、`--dry-run` 等双连字符原文。姓名可自然换行；未填写姓名的草稿省略姓名标题，保留草稿标记。
 
@@ -53,6 +53,8 @@ PDF 中的 `http(s)://`、`www.` 和 `example.com/portfolio` 这类链接可在�
 ## 文件与验证
 
 生成 `resume.json`、`resume.md`、`resume.txt`、`resume.tex` 和依赖文件；`--pdf` 额外生成 `resume.pdf`、`resume-extracted.txt`、`build.log`、`qa.json`。PDF 页数、A4、文本存在性、可见字段缺失和构建溢出警告由脚本检查。PDF QA 失败返回非零；PDF 可能已生成但尚不可交付为验证通过。
+
+多语言或多个岗位共享事实时，按需读 [事实与版本同步](versions.md)。`scripts/facts.py` 先生成共享事实支持的正文、摘要和 JD 依据，再将当前修订的 JSON 交给渲染器；旧修订的 PDF 即使构建通过，也不能冒充最新事实版本。
 
 `qa.json` 的 `status: PASSED/FAILED` 仅表示自动检查结果，`stage` 和 `completed_stages` 表示当前及已执行阶段。`max_pages` 记录允许页数，`failure_reasons` 列出失败原因；缺失正文同时保留原有 `missing_text_indices` 并提供可定位的 `missing_text_fields`。重复构建警告只列一次。`PASSED` 不代表事实确认、人工视觉检查或 ATS 认证。
 
@@ -67,5 +69,18 @@ pdftoppm -png -r 160 "$OUTPUT_ROOT/v1/resume.pdf" "$OUTPUT_ROOT/v1/review"
 查看每一页图片：无裁切、无重叠、章节层次一致、正文可读、字体及图标正确。阅读 `resume-extracted.txt` 检查姓名、联系信息、章节和每段日期的顺序。`qa.json` 的 `visual_review` 和 `reading_order_review` 初始为 `NOT_RUN`，仅在实际检查后记录 `PASS` 或 `FAIL` 并附简短说明。不可自动把构建成功等同视觉或 ATS 验证。
 
 如果页面过满，先删重复/弱相关句子和冗长摘要，再调整生成目录的 `resume.cls` 间距。不要直接修改公共模板保存某个用户信息。公共仓库的演示仅使用虚构资料；真实输出放用户指定的私有目录，未经请求不提交或上传。
+
+## 修改后的重新验收
+
+```bash
+# 直接保留当前目录的 resume.tex、resume.cls 和字体，重新编译并验收：
+python3 "$SKILL_ROOT/scripts/resume.py" rebuild "$OUTPUT_ROOT/v1"
+# 不重新编译，只验收已有 PDF：
+python3 "$SKILL_ROOT/scripts/resume.py" check "$OUTPUT_ROOT/v1"
+```
+
+草稿继续使用 `--draft`；页数约定继续使用 `--max-pages`。这两个命令均保留编辑文件，重新写自动 QA，并把人工视觉和阅读顺序状态重置为 `NOT_RUN`。仅调整样式可直接 `rebuild`；修改正文时还需同步 `resume.json` 作为预期内容来源，不能只改 TeX 后沿用旧事实或旧评分。
+
+成功编译后，`build-state.json` 保存实际依赖、预期 JSON、PDF 和构建日志的 SHA-256 指纹，`qa.json` 记录本次检查的指纹。`check` 要求与编译快照一致：没有快照，或正文、样式、字体、实际依赖、PDF、日志发生变化，都会失败并提示先 `rebuild`。它保留原编译日志，避免把旧日志误当新构建结果。旧版生成目录需先 `rebuild` 一次建立快照；指纹证明文件对应关系，不证明内容真实或完成视觉检查。
 
 用户需要 Word：使用可用文档工具从确认的正文生成 DOCX，再做版面检查；本脚本不提供 DOCX。环境缺依赖则交付正文及可编辑源码并明确缺失的验证步骤。

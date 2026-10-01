@@ -1,0 +1,749 @@
+{
+  "schema_version": 1,
+  "id": "senior-backend",
+  "title": "资深经历过多：后端与技术负责人取舍",
+  "execution": {
+    "mode": "same_model_directed_simulation",
+    "fictional": true,
+    "independent_review": false,
+    "real_jobseeker": false,
+    "blind": false,
+    "user_role": "parent agent sends one fictional input at a time",
+    "assistant_role": "skill_trial agent responds before seeing later user inputs",
+    "pdf_executed": false
+  },
+  "limitations": [
+    "同模型代理分别扮演虚构用户与助手；非真人、非独立评审、非盲测。",
+    "结构检查不证明事实真实或写作质量。"
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "user": "我做后端八年，简历四页。有支付迁移、告警治理、客户工单后台、一个旧缓存组件。现在想投资深后端，也想试技术负责人，不知道该删什么。团队营收涨了30%，可以写进我的成果吗？",
+      "assistant": "“团队营收增长 30%”目前不能写成你的个人成果；还缺它与你负责工作的具体关系。先把它放在待核实材料里。\n\n可以先把开头收成：\n后端开发，8 年经验；项目涉及支付迁移、告警治理、客户工单后台及缓存组件。\n\n两种版本的取舍先这样安排：\n- 资深后端版：优先展开支付迁移、告警治理中的技术判断和个人实现；工单后台、旧缓存组件能否保留，要看相关性与证据。\n- 技术负责人版：仍用真实项目，但优先展示你实际做过的技术决策、协作与指导；没有管理事实就不加团队人数或管理头衔。\n\n当前可用的项目草稿：\n- 参与支付迁移、告警治理及客户工单后台等后端项目。\n\n先不机械删到一页。旧缓存组件若已不相关且没有更强证据，可以压成一行；四页里重复的职责可先合并。\n接下来只补两点：\n1. 支付迁移和告警治理中，你分别负责哪部分，做过什么选择，有哪些能确认的交付或结果？\n2. 你实际做过哪些技术指导、项目协调或人员管理？营收增长与这些工作有可确认的联系吗？",
+      "claims": [
+        {
+          "text": "后端开发，8 年经验；项目涉及支付迁移、告警治理、客户工单后台及缓存组件。",
+          "fact_ids": [
+            "S01",
+            "S02"
+          ]
+        },
+        {
+          "text": "参与支付迁移、告警治理及客户工单后台等后端项目。",
+          "fact_ids": [
+            "S02"
+          ]
+        }
+      ],
+      "questions": [
+        "支付迁移和告警治理中，你分别负责哪部分，做过什么选择，有哪些能确认的交付或结果？",
+        "你实际做过哪些技术指导、项目协调或人员管理？营收增长与这些工作有可确认的联系吗？"
+      ],
+      "progress": "给出概览、项目初稿及两岗位取舍方向，将团队营收保留为未归因材料。"
+    },
+    {
+      "number": 2,
+      "user": "支付迁移我负责退款接口兼容和回归，架构是另一位工程师定的。告警治理是我合并重复规则、做值班排障清单，团队后续每周值班都用。营收增长没法证明跟我有关，就别写。带过两名新人做代码review，没有人员绩效管理。JD A 资深后端要支付系统经验、故障排查；JD B 技术负责人要方案决策、培养工程师、跨团队推进。先给两版看看。",
+      "assistant": "营收增长从简历中去掉。支付迁移保留你负责的退款兼容与回归，不把架构决策归给你；带新人写成技术指导，不写人员绩效管理。\n\n资深后端版\n- 负责支付迁移中的退款接口兼容与回归。\n- 合并重复告警规则，编写值班排障清单，供团队每周值班使用。\n\n技术负责人方向版\n- 通过代码 review 指导两名新人。\n- 合并重复告警规则并形成值班排障清单，供团队每周值班使用。\n- 负责支付迁移中的退款接口兼容与回归。\n\n目前资深后端版的支付经历、排障交付有直接证据。技术负责人版的培养工程师有证据；方案决策和跨团队推进仍缺具体材料，不能用项目名称或团队营收代替。\n\n工单后台和旧缓存组件暂时不展开，先让这两个有明确个人动作的项目占主要篇幅。\n只补一点：告警规则合并时，你自己决定了哪些取舍、和哪些团队对齐，还是执行既定方案？",
+      "claims": [
+        {
+          "text": "负责支付迁移中的退款接口兼容与回归。",
+          "fact_ids": [
+            "S05"
+          ]
+        },
+        {
+          "text": "合并重复告警规则，编写值班排障清单，供团队每周值班使用。",
+          "fact_ids": [
+            "S06"
+          ]
+        },
+        {
+          "text": "通过代码 review 指导两名新人。",
+          "fact_ids": [
+            "S08"
+          ]
+        },
+        {
+          "text": "合并重复告警规则并形成值班排障清单，供团队每周值班使用。",
+          "fact_ids": [
+            "S06"
+          ]
+        }
+      ],
+      "questions": [
+        "告警规则合并时，你自己决定了哪些取舍、和哪些团队对齐，还是执行既定方案？"
+      ],
+      "progress": "用个人退款兼容、值班交付及培养经历形成两版；排除无法归因营收及架构职责。"
+    },
+    {
+      "number": 3,
+      "user": "合并哪些重复规则是我先提议的，和SRE一起确认；最终上线由SRE负责，不是我独立决定。我没有跨团队项目管理经历。姓名周示例，fictional.backend@example.com；岗位一直叫后端工程师，2018至2026，不改成负责人头衔。客户工单后台我只做了查询接口，旧缓存组件也没可验证的收益，可以都压缩。请给两版完整正文和能评的分数，别再问我。",
+      "assistant": "两版正式任职头衔都保留“后端工程师”，技术负责人只作为求职方向。告警治理写清提议、共同确认和 SRE 上线分工，不写独立方案决策或跨团队项目管理；营收增长不进入正文。\n\n资深后端版\n周示例\nfictional.backend@example.com\n求职方向：资深后端\n\n个人概览\n8 年后端开发经验，涉及支付退款接口兼容、回归及告警治理。\n\n工作经历\n后端工程师｜2018—2026\n- 负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。\n- 提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。\n- 编写值班排障清单，供团队每周值班使用。\n- 通过代码 review 指导两名新人。\n\n其他项目\n客户工单后台查询接口；旧缓存组件。\n\n技术负责人方向版\n周示例\nfictional.backend@example.com\n求职方向：技术负责人\n\n个人概览\n8 年后端开发经验，具备代码 review 指导新人及与 SRE 协作的项目经历。\n\n工作经历\n后端工程师｜2018—2026\n- 通过代码 review 指导两名新人。\n- 提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。\n- 编写值班排障清单，供团队每周值班使用。\n- 负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。\n\n其他项目\n客户工单后台查询接口；旧缓存组件。\n\n正文暂评（档位/4；仅依据给定 JD 片段）：\n维度（权重）｜资深后端｜技术负责人方向｜依据\n目标匹配（25）｜3｜2｜支付接口经历直接；排障清单支持故障处理但具体定位案例未提供。负责人方向有指导新人和 SRE 协作，独立方案决策与跨团队项目管理仍缺。\n证据与可信度（25）｜4｜4｜职称、时间段、两名新人及架构/上线归属均由你明确说明。\n成果与价值（20）｜3｜3｜有退款兼容交付、团队每周采用的排障清单与新人指导；故障改善和培养效果未量化，不补收益。\n结构与取舍（10）｜3｜3｜两主项目为重点，查询接口和旧缓存压成一行；公司及完整职业分段材料未提供。\n表达质量（10）｜4｜4｜动作与协作边界清楚，求职方向和正式职位分开。\n排版与提取（10）｜未评｜未评｜未生成 PDF。\n\n加权已评：资深后端 76.25/90，技术负责人方向 70/90；是两个不同目标下的正文暂评，不作录用预测或完整总分。\nJD 映射：后端版退款兼容条目支持支付系统经验，排障清单部分支持故障排查；负责人版代码 review 支持培养，告警建议与 SRE 确认部分支持方案讨论和跨团队协作，不能扩写为独立决定或端到端项目管理。\n最值得将来补充的是具体故障定位案例、你提出合并建议时的判断依据、新人指导产生的可确认变化；没有材料就保留现有保守表述。本轮不再追问。这里只交付已提供材料范围内的完整正文，PDF、视觉和阅读顺序尚未验证。",
+      "claims": [
+        {
+          "id": "SB1",
+          "text": "周示例",
+          "fact_ids": [
+            "S11"
+          ]
+        },
+        {
+          "id": "SB2",
+          "text": "fictional.backend@example.com",
+          "fact_ids": [
+            "S11"
+          ]
+        },
+        {
+          "id": "SB3",
+          "text": "8 年后端开发经验，涉及支付退款接口兼容、回归及告警治理。",
+          "fact_ids": [
+            "S01",
+            "S05",
+            "S06"
+          ]
+        },
+        {
+          "id": "SB4",
+          "text": "后端工程师｜2018—2026",
+          "fact_ids": [
+            "S11"
+          ]
+        },
+        {
+          "id": "SB5",
+          "text": "负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。",
+          "fact_ids": [
+            "S05"
+          ]
+        },
+        {
+          "id": "SB6",
+          "text": "提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。",
+          "fact_ids": [
+            "S09"
+          ]
+        },
+        {
+          "id": "SB7",
+          "text": "编写值班排障清单，供团队每周值班使用。",
+          "fact_ids": [
+            "S06"
+          ]
+        },
+        {
+          "id": "SB8",
+          "text": "通过代码 review 指导两名新人。",
+          "fact_ids": [
+            "S08"
+          ]
+        },
+        {
+          "id": "SB9",
+          "text": "客户工单后台查询接口；旧缓存组件。",
+          "fact_ids": [
+            "S02",
+            "S12"
+          ]
+        },
+        {
+          "id": "SL1",
+          "text": "周示例",
+          "fact_ids": [
+            "S11"
+          ]
+        },
+        {
+          "id": "SL2",
+          "text": "fictional.backend@example.com",
+          "fact_ids": [
+            "S11"
+          ]
+        },
+        {
+          "id": "SL3",
+          "text": "8 年后端开发经验，具备代码 review 指导新人及与 SRE 协作的项目经历。",
+          "fact_ids": [
+            "S01",
+            "S08",
+            "S09"
+          ]
+        },
+        {
+          "id": "SL4",
+          "text": "后端工程师｜2018—2026",
+          "fact_ids": [
+            "S11"
+          ]
+        },
+        {
+          "id": "SL5",
+          "text": "负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。",
+          "fact_ids": [
+            "S05"
+          ]
+        },
+        {
+          "id": "SL6",
+          "text": "提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。",
+          "fact_ids": [
+            "S09"
+          ]
+        },
+        {
+          "id": "SL7",
+          "text": "编写值班排障清单，供团队每周值班使用。",
+          "fact_ids": [
+            "S06"
+          ]
+        },
+        {
+          "id": "SL8",
+          "text": "通过代码 review 指导两名新人。",
+          "fact_ids": [
+            "S08"
+          ]
+        },
+        {
+          "id": "SL9",
+          "text": "客户工单后台查询接口；旧缓存组件。",
+          "fact_ids": [
+            "S02",
+            "S12"
+          ]
+        }
+      ],
+      "questions": [],
+      "progress": "保留正式职称及时间，区分SRE上线权限，压缩弱项目；交付两版正文、JD映射和有限暂评。"
+    }
+  ],
+  "facts": [
+    {
+      "id": "S01",
+      "text": "后端工作八年，原简历四页",
+      "source_turn": 1,
+      "source_quote": "我做后端八年，简历四页。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S02",
+      "text": "项目包括支付迁移、告警治理、客户工单后台和旧缓存组件",
+      "source_turn": 1,
+      "source_quote": "有支付迁移、告警治理、客户工单后台、一个旧缓存组件。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S03",
+      "text": "投递资深后端及技术负责人两个方向",
+      "source_turn": 1,
+      "source_quote": "现在想投资深后端，也想试技术负责人",
+      "status": "user_stated"
+    },
+    {
+      "id": "S04",
+      "text": "团队营收增长30%，个人归因尚未说明",
+      "source_turn": 1,
+      "source_quote": "团队营收涨了30%",
+      "status": "user_stated",
+      "not_for_resume": true
+    },
+    {
+      "id": "S05",
+      "text": "本人负责退款接口兼容和回归；另一工程师制定架构",
+      "source_turn": 2,
+      "source_quote": "支付迁移我负责退款接口兼容和回归，架构是另一位工程师定的。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S06",
+      "text": "本人合并重复告警规则、制作值班排障清单，团队每周使用",
+      "source_turn": 2,
+      "source_quote": "告警治理是我合并重复规则、做值班排障清单，团队后续每周值班都用。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S07",
+      "text": "营收增长无法证明与本人相关，不进入简历",
+      "source_turn": 2,
+      "source_quote": "营收增长没法证明跟我有关，就别写。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S08",
+      "text": "带两名新人做代码review，无人员绩效管理",
+      "source_turn": 2,
+      "source_quote": "带过两名新人做代码review，没有人员绩效管理。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S09",
+      "text": "本人先提议合并重复规则，与SRE共同确认，最终上线由SRE负责",
+      "source_turn": 3,
+      "source_quote": "合并哪些重复规则是我先提议的，和SRE一起确认；最终上线由SRE负责，不是我独立决定。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S10",
+      "text": "没有跨团队项目管理经历",
+      "source_turn": 3,
+      "source_quote": "我没有跨团队项目管理经历。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S11",
+      "text": "姓名周示例，虚构联系方式；正式职位后端工程师，2018至2026",
+      "source_turn": 3,
+      "source_quote": "姓名周示例，fictional.backend@example.com；岗位一直叫后端工程师，2018至2026，不改成负责人头衔。",
+      "status": "user_stated"
+    },
+    {
+      "id": "S12",
+      "text": "客户工单后台只负责查询接口；旧缓存无可验证收益",
+      "source_turn": 3,
+      "source_quote": "客户工单后台我只做了查询接口，旧缓存组件也没可验证的收益，可以都压缩。",
+      "status": "user_stated"
+    }
+  ],
+  "status": "completed",
+  "targets": [
+    {
+      "id": "jd-a",
+      "title": "资深后端",
+      "source_turn": 2,
+      "source_quote": "JD A 资深后端要支付系统经验、故障排查",
+      "requirements": [
+        {
+          "id": "S-A1",
+          "text": "支付系统经验",
+          "kind": "requirement"
+        },
+        {
+          "id": "S-A2",
+          "text": "故障排查",
+          "kind": "requirement"
+        }
+      ]
+    },
+    {
+      "id": "jd-b",
+      "title": "技术负责人",
+      "source_turn": 2,
+      "source_quote": "JD B 技术负责人要方案决策、培养工程师、跨团队推进",
+      "requirements": [
+        {
+          "id": "S-B1",
+          "text": "方案决策",
+          "kind": "requirement"
+        },
+        {
+          "id": "S-B2",
+          "text": "培养工程师",
+          "kind": "requirement"
+        },
+        {
+          "id": "S-B3",
+          "text": "跨团队推进",
+          "kind": "requirement"
+        }
+      ]
+    }
+  ],
+  "deliverables": {
+    "scope": "confirmed_text_pdf_unverified",
+    "versions": [
+      {
+        "id": "senior-backend-zh",
+        "target_id": "jd-a",
+        "language": "zh",
+        "text": "周示例\nfictional.backend@example.com\n求职方向：资深后端\n\n个人概览\n8 年后端开发经验，涉及支付退款接口兼容、回归及告警治理。\n\n工作经历\n后端工程师｜2018—2026\n- 负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。\n- 提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。\n- 编写值班排障清单，供团队每周值班使用。\n- 通过代码 review 指导两名新人。\n\n其他项目\n客户工单后台查询接口；旧缓存组件。",
+        "claims": [
+          {
+            "id": "SB1",
+            "text": "周示例",
+            "fact_ids": [
+              "S11"
+            ]
+          },
+          {
+            "id": "SB2",
+            "text": "fictional.backend@example.com",
+            "fact_ids": [
+              "S11"
+            ]
+          },
+          {
+            "id": "SB3",
+            "text": "8 年后端开发经验，涉及支付退款接口兼容、回归及告警治理。",
+            "fact_ids": [
+              "S01",
+              "S05",
+              "S06"
+            ]
+          },
+          {
+            "id": "SB4",
+            "text": "后端工程师｜2018—2026",
+            "fact_ids": [
+              "S11"
+            ]
+          },
+          {
+            "id": "SB5",
+            "text": "负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。",
+            "fact_ids": [
+              "S05"
+            ]
+          },
+          {
+            "id": "SB6",
+            "text": "提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。",
+            "fact_ids": [
+              "S09"
+            ]
+          },
+          {
+            "id": "SB7",
+            "text": "编写值班排障清单，供团队每周值班使用。",
+            "fact_ids": [
+              "S06"
+            ]
+          },
+          {
+            "id": "SB8",
+            "text": "通过代码 review 指导两名新人。",
+            "fact_ids": [
+              "S08"
+            ]
+          },
+          {
+            "id": "SB9",
+            "text": "客户工单后台查询接口；旧缓存组件。",
+            "fact_ids": [
+              "S02",
+              "S12"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "technical-lead-zh",
+        "target_id": "jd-b",
+        "language": "zh",
+        "text": "周示例\nfictional.backend@example.com\n求职方向：技术负责人\n\n个人概览\n8 年后端开发经验，具备代码 review 指导新人及与 SRE 协作的项目经历。\n\n工作经历\n后端工程师｜2018—2026\n- 通过代码 review 指导两名新人。\n- 提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。\n- 编写值班排障清单，供团队每周值班使用。\n- 负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。\n\n其他项目\n客户工单后台查询接口；旧缓存组件。",
+        "claims": [
+          {
+            "id": "SL1",
+            "text": "周示例",
+            "fact_ids": [
+              "S11"
+            ]
+          },
+          {
+            "id": "SL2",
+            "text": "fictional.backend@example.com",
+            "fact_ids": [
+              "S11"
+            ]
+          },
+          {
+            "id": "SL3",
+            "text": "8 年后端开发经验，具备代码 review 指导新人及与 SRE 协作的项目经历。",
+            "fact_ids": [
+              "S01",
+              "S08",
+              "S09"
+            ]
+          },
+          {
+            "id": "SL4",
+            "text": "后端工程师｜2018—2026",
+            "fact_ids": [
+              "S11"
+            ]
+          },
+          {
+            "id": "SL5",
+            "text": "负责支付迁移中的退款接口兼容与回归；系统架构由其他工程师制定。",
+            "fact_ids": [
+              "S05"
+            ]
+          },
+          {
+            "id": "SL6",
+            "text": "提出重复告警规则合并建议，与 SRE 共同确认；最终上线由 SRE 负责。",
+            "fact_ids": [
+              "S09"
+            ]
+          },
+          {
+            "id": "SL7",
+            "text": "编写值班排障清单，供团队每周值班使用。",
+            "fact_ids": [
+              "S06"
+            ]
+          },
+          {
+            "id": "SL8",
+            "text": "通过代码 review 指导两名新人。",
+            "fact_ids": [
+              "S08"
+            ]
+          },
+          {
+            "id": "SL9",
+            "text": "客户工单后台查询接口；旧缓存组件。",
+            "fact_ids": [
+              "S02",
+              "S12"
+            ]
+          }
+        ]
+      }
+    ],
+    "jd_mappings": [
+      {
+        "target_id": "jd-a",
+        "requirement_id": "S-A1",
+        "status": "supported",
+        "fact_ids": [
+          "S05"
+        ],
+        "claim_ids": [
+          "SB5"
+        ],
+        "gap": ""
+      },
+      {
+        "target_id": "jd-a",
+        "requirement_id": "S-A2",
+        "status": "partial",
+        "fact_ids": [
+          "S06"
+        ],
+        "claim_ids": [
+          "SB7"
+        ],
+        "gap": "有排障清单交付；未提供具体故障定位案例。"
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "S-B1",
+        "status": "partial",
+        "fact_ids": [
+          "S09"
+        ],
+        "claim_ids": [
+          "SL6"
+        ],
+        "gap": "提出建议并共同确认，不能写成独立方案决策。"
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "S-B2",
+        "status": "supported",
+        "fact_ids": [
+          "S08"
+        ],
+        "claim_ids": [
+          "SL8"
+        ],
+        "gap": ""
+      },
+      {
+        "target_id": "jd-b",
+        "requirement_id": "S-B3",
+        "status": "partial",
+        "fact_ids": [
+          "S09",
+          "S10"
+        ],
+        "claim_ids": [
+          "SL6"
+        ],
+        "gap": "有与SRE协作的证据，明确无跨团队项目管理经历。"
+      }
+    ],
+    "assessments": [
+      {
+        "version_id": "senior-backend-zh",
+        "scope": "provisional_text_only",
+        "assessed_score": 76.25,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 3,
+            "evidence_claim_ids": [
+              "SB5",
+              "SB6",
+              "SB7",
+              "SB8"
+            ],
+            "reason": "支付经验直接，排障清单相关但具体故障定位案例缺失。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 4,
+            "evidence_claim_ids": [
+              "SB5",
+              "SB6",
+              "SB7",
+              "SB8"
+            ],
+            "reason": "职称、年份、范围和他人决策/上线归属均有明确输入。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "SB5",
+              "SB6",
+              "SB7",
+              "SB8"
+            ],
+            "reason": "个人交付和每周采用有证据，故障及培养效果未说明。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "SB5",
+              "SB6",
+              "SB7",
+              "SB8"
+            ],
+            "reason": "按目标前置相应项目，弱项目缩为一行，完整职业材料仍有限。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "SB5",
+              "SB6",
+              "SB7",
+              "SB8"
+            ],
+            "reason": "个人动作、合作与决策权限没有混淆。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "没有PDF。"
+          }
+        ]
+      },
+      {
+        "version_id": "technical-lead-zh",
+        "scope": "provisional_text_only",
+        "assessed_score": 70,
+        "assessed_weight": 90,
+        "dimensions": [
+          {
+            "name": "目标匹配",
+            "weight": 25,
+            "level": 2,
+            "evidence_claim_ids": [
+              "SL5",
+              "SL6",
+              "SL7",
+              "SL8"
+            ],
+            "reason": "有新人指导和SRE协作，独立方案决策与跨团队项目管理缺失。"
+          },
+          {
+            "name": "证据与可信度",
+            "weight": 25,
+            "level": 4,
+            "evidence_claim_ids": [
+              "SL5",
+              "SL6",
+              "SL7",
+              "SL8"
+            ],
+            "reason": "职称、年份、范围和他人决策/上线归属均有明确输入。"
+          },
+          {
+            "name": "成果与价值",
+            "weight": 20,
+            "level": 3,
+            "evidence_claim_ids": [
+              "SL5",
+              "SL6",
+              "SL7",
+              "SL8"
+            ],
+            "reason": "个人交付和每周采用有证据，故障及培养效果未说明。"
+          },
+          {
+            "name": "结构与取舍",
+            "weight": 10,
+            "level": 3,
+            "evidence_claim_ids": [
+              "SL5",
+              "SL6",
+              "SL7",
+              "SL8"
+            ],
+            "reason": "按目标前置相应项目，弱项目缩为一行，完整职业材料仍有限。"
+          },
+          {
+            "name": "表达质量",
+            "weight": 10,
+            "level": 4,
+            "evidence_claim_ids": [
+              "SL5",
+              "SL6",
+              "SL7",
+              "SL8"
+            ],
+            "reason": "个人动作、合作与决策权限没有混淆。"
+          },
+          {
+            "name": "排版与提取",
+            "weight": 10,
+            "level": null,
+            "evidence_claim_ids": [],
+            "reason": "没有PDF。"
+          }
+        ]
+      }
+    ],
+    "remaining_risks": [
+      "没有原四页简历，仅据用户概述选材，不能证明实际四页压缩结果或排版。",
+      "未提供公司及完整职业分段，故障定位和培养效果仍有限。",
+      "没有独立架构决策、跨团队项目管理或个人营收归因证据。",
+      "PDF、视觉、阅读顺序均未验证；评分为同模型作者暂评。"
+    ]
+  },
+  "observations": [
+    {
+      "criterion": "个人团队权限",
+      "result": "observed",
+      "evidence": "最终正文保留其他工程师架构及SRE上线归属，正式任职仍是后端工程师。"
+    },
+    {
+      "criterion": "选材",
+      "result": "observed",
+      "evidence": "后端版前置退款兼容；负责人方向版前置新人指导，弱项目压为一行。"
+    },
+    {
+      "criterion": "排除不当成果",
+      "result": "observed",
+      "evidence": "正文不使用S04营收30%，不添加故障改善、缓存收益或管理规模。"
+    },
+    {
+      "criterion": "多页压缩",
+      "result": "limited",
+      "evidence": "未看到原四页材料，只能演示按概述进行内容取舍，不能宣称完成真实四页压缩或一页排版。"
+    }
+  ]
+}
