@@ -14,9 +14,23 @@ resume = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(resume)
 
 PDFINFO = 'Pages: 1\nPage size: 595.276 x 841.89 pts (A4)\n'
+PAGE_SIZES = 'Page 1 size: 595.276 x 841.89 pts (A4)\n'
 
 
 class PdfFailureTests(unittest.TestCase):
+    def simulated_commands(self, results):
+        responses = iter(results)
+        def run(command, cwd):
+            value = next(responses)
+            if isinstance(value, Exception):
+                raise value
+            if command[0] == 'tectonic':
+                generated = Path(command[command.index('--outdir') + 1])
+                (generated / 'resume.pdf').write_bytes(b'mock PDF')
+                Path(command[command.index('--makefile-rules') + 1]).write_text('resume.pdf : resume.tex\n')
+            return value
+        return run
+
     def failure(self, out, stage):
         report = json.loads((out / 'qa.json').read_text())
         self.assertEqual(report['status'], 'FAILED')
@@ -59,13 +73,13 @@ class PdfFailureTests(unittest.TestCase):
         for stage, results in (
             ('pdfinfo', ['compile succeeded\n', subprocess.CalledProcessError(
                 1, ['pdfinfo'], output='Invalid PDF\n')]),
-            ('text_extraction', ['compile succeeded\n', PDFINFO, subprocess.CalledProcessError(
+            ('text_extraction', ['compile succeeded\n', PDFINFO, PAGE_SIZES, subprocess.CalledProcessError(
                 1, ['pdftotext'], output='Cannot extract PDF\n')]),
         ):
             with self.subTest(stage=stage), tempfile.TemporaryDirectory() as tmp:
                 out = Path(tmp)
                 with patch.object(resume.shutil, 'which', return_value='/example/tool'), \
-                        patch.object(resume, 'run', side_effect=results):
+                        patch.object(resume, 'run', side_effect=self.simulated_commands(results)):
                     with self.assertRaisesRegex(ValueError, f'PDF {stage} failed'):
                         resume.build_pdf(out, 1)
                 report = self.failure(out, stage)
@@ -82,7 +96,7 @@ class PdfFailureTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             with patch.object(resume.shutil, 'which', return_value='/example/tool'), \
-                    patch.object(resume, 'run', side_effect=['compile succeeded\n', 'unknown output']):
+                    patch.object(resume, 'run', side_effect=self.simulated_commands(['compile succeeded\n', 'unknown output'])):
                 with self.assertRaisesRegex(ValueError, 'did not report a page count'):
                     resume.build_pdf(out, 1)
             report = self.failure(out, 'pdfinfo')

@@ -26,7 +26,7 @@ EXTRACTED = ('Sample Candidate\nsample@example.com\nExperience\n'
 
 
 class PdfReportTests(unittest.TestCase):
-    def build(self, *, pages=1, size='595.276 x 841.89', extracted=EXTRACTED,
+    def build(self, *, pages=1, size='595.276 x 841.89', page_sizes=None, extracted=EXTRACTED,
               build_log='compile succeeded\n', max_pages=1):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
@@ -35,14 +35,17 @@ class PdfReportTests(unittest.TestCase):
 
             def run(command, cwd):
                 if command[0] == 'tectonic':
-                    (cwd / 'resume.pdf').write_bytes(b'fictional mock PDF')
-                    (cwd / 'build-dependencies.mk').write_text('resume.pdf : resume.tex\n')
+                    generated = Path(command[command.index('--outdir') + 1])
+                    (generated / 'resume.pdf').write_bytes(b'fictional mock PDF')
+                    Path(command[command.index('--makefile-rules') + 1]).write_text('resume.pdf : resume.tex\n')
                     return build_log
                 if command[0] == 'pdfinfo':
+                    if '-f' in command:
+                        return '\n'.join(f'Page {i} size: {dimensions} pts'
+                                         for i, dimensions in enumerate(page_sizes or [size] * pages, 1))
                     return f'Pages: {pages}\nPage size: {size} pts\n'
                 if command[0] == 'pdftotext':
-                    (cwd / 'resume-extracted.txt').write_text(extracted)
-                    return ''
+                    return extracted
                 self.fail(f'Unexpected external command: {command}')
 
             failure = None
@@ -88,6 +91,14 @@ class PdfReportTests(unittest.TestCase):
         report, failure = self.build(size='612 x 792')
         self.assertFalse(report['a4'])
         self.assertIn('not A4: 612 x 792 pt', failure)
+
+    def test_second_page_dimensions_fail_with_page_location(self):
+        report, failure = self.build(pages=2, max_pages=2,
+                                     page_sizes=['595.276 x 841.89', '612 x 792'])
+        self.assertEqual(report['non_a4_pages'], [2])
+        self.assertTrue(report['page_sizes'][0]['a4'])
+        self.assertFalse(report['page_sizes'][1]['a4'])
+        self.assertIn('page 2 size is not A4', failure)
 
     def test_empty_extraction_reports_absent_text_and_missing_fields(self):
         report, failure = self.build(extracted='\n\f')

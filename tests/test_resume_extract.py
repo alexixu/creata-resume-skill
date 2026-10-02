@@ -88,6 +88,94 @@ class ExtractTests(unittest.TestCase):
         self.assertTrue(result['blocks'][1]['locator']['numbered_paragraph'])
         self.assertTrue(any('tracked changes' in w for w in result['warnings']))
 
+    def test_docx_inherited_list_properties_and_direct_cancellation_preserve_text(self):
+        styles = f'''<w:styles xmlns:w="{W}">
+        <w:style w:type="paragraph" w:styleId="Normal" w:default="1"/>
+        <w:style w:type="paragraph" w:styleId="BaseList"><w:basedOn w:val="Normal"/>
+          <w:pPr><w:numPr><w:numId w:val="2"/><w:ilvl w:val="0"/></w:numPr></w:pPr></w:style>
+        <w:style w:type="paragraph" w:styleId="DerivedList"><w:basedOn w:val="BaseList"/>
+          <w:pPr><w:numPr><w:ilvl w:val="1"/></w:numPr></w:pPr></w:style></w:styles>'''
+        body = '''<w:p><w:pPr><w:pStyle w:val="DerivedList"/><w:numPr><w:ilvl w:val="3"/></w:numPr></w:pPr>
+          <w:r><w:t>Supported migration from Jan 2022 - Dec 2023.</w:t><w:br/><w:t>Kept the original continuation.</w:t></w:r></w:p>
+        <w:p><w:pPr><w:pStyle w:val="DerivedList"/><w:numPr><w:numId w:val="0"/></w:numPr></w:pPr>
+          <w:r><w:t>Experience</w:t></w:r></w:p>'''
+        path = self.docx(body, {'word/styles.xml': styles})
+        original = path.read_bytes()
+        result = extractor.extract(path)
+        self.assertEqual(path.read_bytes(), original)
+        first, cancelled = result['blocks']
+        self.assertEqual(first['text'], 'Supported migration from Jan 2022 - Dec 2023.\nKept the original continuation.')
+        self.assertEqual(first['locator']['num_id'], '2')
+        self.assertEqual(first['locator']['numbering_level'], '3')
+        self.assertEqual(first['locator']['numbering_source'], 'style:BaseList')
+        self.assertTrue(first['locator']['numbered_paragraph'])
+        self.assertFalse(cancelled['locator']['numbered_paragraph'])
+        self.assertEqual(cancelled['locator']['numbering_status'], 'cancelled')
+        self.assertEqual(cancelled['text'], 'Experience')
+        self.assertFalse(any(block['text'].startswith('1.') for block in result['blocks']))
+
+    def test_docx_missing_or_cyclic_style_lists_remain_uncertain_without_looping(self):
+        styles = f'''<w:styles xmlns:w="{W}">
+        <w:style w:type="paragraph" w:styleId="CycleA"><w:basedOn w:val="CycleB"/></w:style>
+        <w:style w:type="paragraph" w:styleId="CycleB"><w:basedOn w:val="CycleA"/></w:style></w:styles>'''
+        body = '''<w:p><w:pPr><w:pStyle w:val="CycleA"/></w:pPr><w:r><w:t>Skills</w:t></w:r></w:p>
+        <w:p><w:pPr><w:pStyle w:val="MissingList"/></w:pPr><w:r><w:t>Jan 2022 - Dec 2023</w:t></w:r></w:p>
+        <w:p><w:pPr><w:pStyle w:val="MissingList"/><w:numPr><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:t>Normal candidate</w:t></w:r></w:p>'''
+        result = extractor.extract(self.docx(body, {'word/styles.xml': styles}))
+        self.assertEqual([block['text'] for block in result['blocks']], ['Skills', 'Jan 2022 - Dec 2023', 'Normal candidate'])
+        self.assertTrue(all(block['locator']['numbering_candidate'] for block in result['blocks'][:2]))
+        self.assertTrue(all(block['locator']['numbering_status'] == 'unresolved' for block in result['blocks'][:2]))
+        self.assertEqual(result['blocks'][2]['locator']['numbering_status'], 'cancelled')
+        self.assertNotIn('numbering_candidate', result['blocks'][2]['locator'])
+        self.assertTrue(any('inheritance cycle' in warning for warning in result['warnings']))
+        self.assertTrue(any('missing/ambiguous' in warning for warning in result['warnings']))
+
+    def test_docx_vanish_false_zero_and_off_preserve_visible_text_and_hyperlinks(self):
+        body = ''.join(f'''<w:p><w:r><w:rPr><w:vanish w:val="{value}"/></w:rPr>
+          <w:t>Visible {value}: </w:t><w:hyperlink r:id="portfolio"><w:r><w:t>portfolio</w:t></w:r></w:hyperlink></w:r></w:p>'''
+                       for value in ('false', '0', 'off'))
+        parts = {'word/_rels/document.xml.rels': '<Relationships><Relationship Id="portfolio" Target="https://example.invalid/work" TargetMode="External"/></Relationships>'}
+        result = extractor.extract(self.docx(body, parts))
+        self.assertEqual([b['text'] for b in result['blocks']], ['Visible false: portfolio', 'Visible 0: portfolio', 'Visible off: portfolio'])
+        self.assertTrue(all(b['links'] == [{'text': 'portfolio', 'target': 'https://example.invalid/work'}] for b in result['blocks']))
+        self.assertFalse(any('hidden text omitted' in warning for warning in result['warnings']))
+        body += '<w:p><w:r><w:rPr><w:vanish/></w:rPr><w:t>Actually hidden.</w:t></w:r></w:p>'
+        result = extractor.extract(self.docx(body, parts))
+        self.assertEqual(len(result['blocks']), 3)
+        self.assertTrue(any('hidden text omitted' in warning for warning in result['warnings']))
+
+    def test_docx_textbox_compatibility_branch_is_single_and_paragraphs_are_separate(self):
+        mc = extractor.MC
+        p = lambda text: f'<w:p><w:r><w:t>{text}</w:t></w:r></w:p>'
+        text = p('Experience') + p('Example Co / Engineer | 2023-2026')
+        text += '<w:p><w:hyperlink r:id="portfolio"><w:r><w:t>Built forms.</w:t></w:r></w:hyperlink></w:p>'
+        body = p('Sample Candidate') + f'''<w:p><w:r><w:t>Anchor note.</w:t><mc:AlternateContent xmlns:mc="{mc}">
+          <mc:Choice Requires="wps"><w:drawing><w:txbxContent>{text}</w:txbxContent></w:drawing></mc:Choice>
+          <mc:Fallback><w:pict><w:txbxContent>{p('Fallback duplicate must not appear.')}</w:txbxContent></w:pict></mc:Fallback>
+          </mc:AlternateContent></w:r></w:p>'''
+        path = self.docx(body, {'word/_rels/document.xml.rels': '<Relationships><Relationship Id="portfolio" Target="https://example.invalid" TargetMode="External"/></Relationships>'})
+        original = path.read_bytes()
+        result = extractor.extract(path)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertEqual([b['text'] for b in result['blocks']], ['Sample Candidate', 'Anchor note.', 'Experience',
+                         'Example Co / Engineer | 2023-2026', 'Built forms.'])
+        self.assertEqual(result['blocks'][1]['links'], [])
+        self.assertEqual(result['blocks'][4]['links'], [{'text': 'Built forms.', 'target': 'https://example.invalid'}])
+        self.assertTrue(all(b['locator']['textbox'] == 1 for b in result['blocks'][2:]))
+        self.assertTrue(all(b['locator']['anchor_paragraph'] == 2 for b in result['blocks'][2:]))
+        self.assertEqual(len({b['id'] for b in result['blocks']}), 5)
+        self.assertTrue(any('floating textbox' in warning for warning in result['warnings']))
+        self.assertTrue(any('one readable Choice/Fallback' in warning for warning in result['warnings']))
+
+    def test_docx_textbox_uses_fallback_when_choice_has_no_readable_word_text(self):
+        body = f'''<w:p><w:r><mc:AlternateContent xmlns:mc="{extractor.MC}" xmlns:x="urn:fictional">
+          <mc:Choice Requires="x"><x:unsupported-shape/></mc:Choice>
+          <mc:Fallback><w:pict><w:txbxContent><w:p><w:r><w:t>Readable fallback.</w:t></w:r></w:p></w:txbxContent></w:pict></mc:Fallback>
+          </mc:AlternateContent></w:r></w:p>'''
+        result = extractor.extract(self.docx(body))
+        self.assertEqual([b['text'] for b in result['blocks']], ['Readable fallback.'])
+        self.assertEqual(result['blocks'][0]['locator']['textbox'], 1)
+
     def test_docx_merged_cells_keep_coordinates_and_deleted_rows_are_omitted(self):
         p = lambda text: f'<w:p><w:r><w:t>{text}</w:t></w:r></w:p>'
         body = '<w:tbl><w:tr><w:tc><w:tcPr><w:gridSpan w:val="2"/><w:vMerge w:val="restart"/></w:tcPr>' + p('Merged original') + '</w:tc><w:tc>' + p('Third column') + '</w:tc></w:tr>'

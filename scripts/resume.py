@@ -7,8 +7,10 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
 import unicodedata
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -222,25 +224,114 @@ def run(command, cwd):
 
 
 def normalized_text(value):
-    return re.sub(r'\s+', '', unicodedata.normalize('NFKC', value).replace('\u00ad', ''))
+    return unicodedata.normalize('NFKC', value).replace('\u00ad', '')
+
+
+def text_pattern(value):
+    """Allow observed types of PDF wrapping without joining separate Latin words."""
+    expected = ' '.join(normalized_text(value).split())
+    if not expected:
+        return re.compile('')
+    latin = lambda char: unicodedata.name(char, '').startswith('LATIN ')
+    cjk = lambda char: any(unicodedata.name(char, '').startswith(prefix)
+                           for prefix in ('CJK ', 'HIRAGANA ', 'KATAKANA ', 'HANGUL '))
+    urls = [match.span() for match in URL_TEXT.finditer(expected)]
+    parts = []
+    # Latin word boundaries stop SQL from matching NoSQL and dates from matching
+    # longer numbers. CJK has no whitespace-delimited word boundary.
+    word = r'A-Za-z0-9_\u00c0-\u024f\u1e00-\u1eff'
+    if latin(expected[0]) or expected[0].isdigit():
+        parts.append(r'(?<![' + word + '])')
+    for index, char in enumerate(expected):
+        if index:
+            before = expected[index - 1]
+            if before != ' ' and char != ' ':
+                if any(start < index < end for start, end in urls):
+                    parts.append(r'(?:[ \t]*\n[ \t]*)?')
+                elif latin(before) and latin(char):
+                    parts.append(r'(?:-[ \t]*\n[ \t]*)?')
+                elif before == '-' and index > 1 and latin(expected[index - 2]) and latin(char):
+                    parts.append(r'(?:[ \t]*\n[ \t]*)?')
+                elif cjk(before) or cjk(char):
+                    parts.append(r'\s*')
+        if char == ' ':
+            adjacent_cjk = ((index and cjk(expected[index - 1]))
+                            or (index + 1 < len(expected) and cjk(expected[index + 1])))
+            left = expected[:index].rsplit(' ', 1)[-1]
+            right = expected[index + 1:].split(' ', 1)[0]
+            # Poppler can join narrow gaps between initials (B C -> BC).
+            # This exception never joins ordinary multi-letter words.
+            initials = all(len(token) == 1 and token.isupper() and latin(token)
+                           for token in (left, right))
+            parts.append(r'\s*' if adjacent_cjk or initials else r'\s+')
+        else:
+            parts.append(re.escape(char))
+    if latin(expected[-1]) or expected[-1].isdigit():
+        parts.append(r'(?![' + word + '])')
+    return re.compile(''.join(parts))
 
 
 def text_is_present(value, extracted):
-    # Keep each line-end hyphen optional independently: a paragraph can contain
-    # both natural compounds (cross-functional) and TeX word breaks (vali-dation).
-    # Newlines mark only eligible word breaks; all other whitespace is normalized.
-    parts, start = [], 0
-    for match in re.finditer(r'(?<=\w)-[ \t]*\n[ \t]*(?=\w)', extracted):
-        # TeX hyphenates Latin words, not negative numbers or CJK text.
-        if all(unicodedata.name(extracted[index], '').startswith('LATIN ')
-               for index in (match.start() - 1, match.end())):
-            parts.append(normalized_text(extracted[start:match.start()]))
-            start = match.end()
-    parts.append(normalized_text(extracted[start:]))
-    searchable = '-\n'.join(parts)
-    expected = normalized_text(value)
-    chars = [r'-(?:\n)?' if char == '-' else re.escape(char) for char in expected]
-    return re.search(r'(?:-\n)?'.join(chars), searchable) is not None
+    return text_pattern(value).search(normalized_text(extracted)) is not None
+
+
+def missing_text_indices(expected, extracted):
+    """Reserve distinct spans, preferring complete long fields over their substrings."""
+    text = normalized_text(extracted)
+    occupied, missing = [], []
+    # Priority measures content, not optional spacing (for example spaced CJK
+    # characters or initials). The matcher still requires ordinary Latin spaces.
+    for index in sorted(range(len(expected)),
+                        key=lambda i: len(''.join(normalized_text(expected[i][1]).split())), reverse=True):
+        value = expected[index][1]
+        if not value.strip():
+            continue
+        # Prefer the complete same-line occurrence over a coincidental match
+        # spanning the end/start of two separate fields. Wrapping remains valid
+        # when no shorter occurrence is available.
+        matches = sorted(text_pattern(value).finditer(text),
+                         key=lambda match: (match.group().count('\n') + match.group().count('\f'),
+                                            match.end() - match.start(), match.start()))
+        for match in matches:
+            start, end = match.span()
+            if not any(start < right and end > left for left, right in occupied):
+                occupied.append((start, end))
+                break
+        else:
+            missing.append(index)
+    return sorted(missing)
+
+
+GENERATED_FILES = ('qa.json', 'build.log', 'build-state.json', 'build-dependencies.mk',
+                   'resume.pdf', 'resume-extracted.txt', 'resume.aux', 'resume.log',
+                   'resume.xdv', 'resume.synctex.gz', 'resume.out', 'resume.toc')
+
+
+def safe_target(path):
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError:
+        return
+    if not stat.S_ISREG(mode):
+        raise ValueError(f'unsafe generated target {path.name}: symlinks and non-regular files are refused')
+
+
+def safe_write(path, text):
+    """Atomically replace a regular target; never open an existing link for writing."""
+    safe_target(path)
+    fd, name = tempfile.mkstemp(prefix='.resume-write-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write(text)
+        safe_target(path)
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
+def install_generated(source, destination):
+    safe_target(destination)
+    os.replace(source, destination)
 
 
 def file_hash(path):
@@ -284,7 +375,7 @@ def snapshot_build(out):
     if missing:
         raise ValueError('build dependency missing: ' + ', '.join(missing))
     state = {'version': 1, 'hash_algorithm': 'sha256', 'input_hashes': hashes}
-    (out / 'build-state.json').write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n')
+    safe_write(out / 'build-state.json', json.dumps(state, ensure_ascii=False, indent=2) + '\n')
     return hashes
 
 
@@ -312,6 +403,10 @@ def verify_build_state(out, report):
 
 def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
     out = out.resolve()
+    # This preflight precedes even error-report writes. A hostile report link must
+    # produce a CLI diagnostic, not overwrite the file that the link points to.
+    for name in GENERATED_FILES:
+        safe_target(out / name)
     report = {'max_pages': max_pages, 'visual_review': 'NOT_RUN', 'reading_order_review': 'NOT_RUN',
               'ats_compatibility': 'NOT_CERTIFIED', 'hash_algorithm': 'sha256',
               'operation': 'rebuild' if compile_pdf else 'check'}
@@ -331,9 +426,20 @@ def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
         completed.append(stage)
         if compile_pdf:
             stage = 'compile'
-            build_log = run(['tectonic', '-X', 'compile', 'resume.tex', '--outdir', '.',
-                             '--makefile-rules', 'build-dependencies.mk'], out)
-            (out / 'build.log').write_text(build_log)
+            # Read the user's existing sources in place, but let the compiler write
+            # only into a fresh private directory. Do not copy/replace private TeX.
+            with tempfile.TemporaryDirectory(prefix='.resume-build-', dir=out) as temporary:
+                generated = Path(temporary)
+                build_log = run(['tectonic', '-X', 'compile', 'resume.tex', '--outdir', str(generated),
+                                 '--makefile-rules', str(generated / 'build-dependencies.mk')], out)
+                # Tectonic prefixes relative *input* dependencies with --outdir,
+                # although they were read relative to cwd. Rebase that prefix;
+                # absolute external dependencies and symlink names stay intact.
+                rules = generated / 'build-dependencies.mk'
+                safe_write(rules, rules.read_text().replace(str(generated) + '/', str(out) + '/'))
+                for name in ('resume.pdf', 'build-dependencies.mk'):
+                    install_generated(generated / name, out / name)
+            safe_write(out / 'build.log', build_log)
             completed.append(stage)
         else:
             stage = 'freshness'
@@ -343,17 +449,24 @@ def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
         stage = 'pdfinfo'
         info = run(['pdfinfo', 'resume.pdf'], out)
         page_match = re.search(r'^Pages:\s+(\d+)', info, re.M)
-        size_match = re.search(r'^Page size:\s+([\d.]+) x ([\d.]+)', info, re.M)
-        if not page_match or not size_match:
-            raise ValueError('pdfinfo did not report a page count and page size')
+        if not page_match or int(page_match[1]) < 1:
+            raise ValueError('pdfinfo did not report a page count')
         pages = int(page_match[1])
-        is_a4 = (abs(float(size_match[1]) - 595.276) < 1
-                 and abs(float(size_match[2]) - 841.89) < 1)
-        report.update(pages=pages, a4=is_a4, within_page_limit=pages <= max_pages)
+        report.update(pages=pages, within_page_limit=pages <= max_pages)
+        sizes = run(['pdfinfo', '-f', '1', '-l', str(pages), 'resume.pdf'], out)
+        matches = re.findall(r'^Page\s+(\d+) size:\s+([\d.]+) x ([\d.]+)', sizes, re.M)
+        if [int(page) for page, _, _ in matches] != list(range(1, pages + 1)):
+            raise ValueError('pdfinfo did not report exactly one size for every PDF page')
+        page_sizes = [{'page': int(page), 'width_pt': float(width), 'height_pt': float(height),
+                       'a4': abs(float(width) - 595.276) < 1 and abs(float(height) - 841.89) < 1}
+                      for page, width, height in matches]
+        bad_pages = [item['page'] for item in page_sizes if not item['a4']]
+        is_a4 = not bad_pages
+        report.update(a4=is_a4, page_sizes=page_sizes, non_a4_pages=bad_pages)
         completed.append(stage)
         stage = 'text_extraction'
-        run(['pdftotext', '-layout', 'resume.pdf', 'resume-extracted.txt'], out)
-        extracted = (out / 'resume-extracted.txt').read_text()
+        extracted = run(['pdftotext', '-layout', 'resume.pdf', '-'], out)
+        safe_write(out / 'resume-extracted.txt', extracted)
         report['text_present'] = bool(extracted.strip())
         completed.append(stage)
         stage = 'source_read'
@@ -370,17 +483,16 @@ def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
         output = (error.stdout or '') if isinstance(error, subprocess.CalledProcessError) else ''
         diagnostic = f'\n[{stage} failed]\n{error}\n{output}'
         if compile_pdf:
-            (out / 'build.log').write_text(build_log + diagnostic)
+            safe_write(out / 'build.log', build_log + diagnostic)
         report.update(status='FAILED', stage=stage, error=str(error),
                       failure_reasons=[f'{stage} failed: {error}'], completed_stages=completed)
-        (out / 'qa.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+        safe_write(out / 'qa.json', json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         message = f'PDF {stage} failed: {error}; inspect qa.json'
         if compile_pdf:
             message += ' and build.log'
         raise ValueError(message + (f'\n{output}' if output else '')) from error
     expected = list(iter_visible_fields(source))
-    missing = [index for index, (_, value) in enumerate(expected)
-               if value and not text_is_present(value, extracted)]
+    missing = missing_text_indices(expected, extracted)
     missing_fields = [expected[index][0] for index in missing]
     warnings = list(dict.fromkeys(line for line in build_log.splitlines()
                                  if any(word in line.lower() for word in ('overfull', 'missing character'))))
@@ -388,7 +500,10 @@ def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
     if pages > max_pages:
         reasons.append(f'page limit exceeded: {pages} pages (maximum {max_pages})')
     if not is_a4:
-        reasons.append(f'page size is not A4: {size_match[1]} x {size_match[2]} pt')
+        for size in page_sizes:
+            if not size['a4']:
+                reasons.append(f'page {size["page"]} size is not A4: '
+                               f'{size["width_pt"]:g} x {size["height_pt"]:g} pt')
     if not extracted.strip():
         reasons.append('no extractable text')
     if missing_fields:
@@ -406,7 +521,7 @@ def build_pdf(out, max_pages, *, compile_pdf=True, draft=None):
                   layout_warnings=warnings)
     if reasons:
         report['error'] = '; '.join(reasons)
-    (out / 'qa.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+    safe_write(out / 'qa.json', json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     if reasons:
         raise ValueError(f'PDF QA failed: {report["error"]}; inspect qa.json and build.log')
     return report

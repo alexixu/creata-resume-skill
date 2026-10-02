@@ -44,19 +44,21 @@ class RebuildCheckTests(unittest.TestCase):
     def run_command(self, command, cwd):
         self.commands.append(command[0])
         if command[0] == 'tectonic':
-            (cwd / 'resume.pdf').write_bytes(b'fictional compiled PDF')
-            (cwd / 'build-dependencies.mk').write_text(
+            generated = Path(command[command.index('--outdir') + 1])
+            (generated / 'resume.pdf').write_bytes(b'fictional compiled PDF')
+            Path(command[command.index('--makefile-rules') + 1]).write_text(
                 './resume.pdf : resume.tex \\\n'
                 '  ./resume.cls \\\n'
                 '  ./shared note.tex \\\n'
                 '  ./fonts/private font.otf\n')
             return 'compile succeeded\n'
         if command[0] == 'pdfinfo':
+            if '-f' in command:
+                return 'Page 1 size: 595.276 x 841.89 pts (A4)\n'
             return 'Pages: 1\nPage size: 595.276 x 841.89 pts (A4)\n'
         if command[0] == 'pdftotext':
             text = '\n'.join(value for _, value in resume.iter_visible_fields(PROFILE))
-            (cwd / 'resume-extracted.txt').write_text(text + self.extracted_suffix)
-            return ''
+            return text + self.extracted_suffix
         self.fail(f'unexpected command {command}')
 
     def process(self, compile_pdf=True, draft=False):
@@ -86,7 +88,7 @@ class RebuildCheckTests(unittest.TestCase):
         state = (self.out / 'build-state.json').read_bytes()
         self.commands.clear()
         checked = self.process(compile_pdf=False)
-        self.assertEqual(self.commands, ['pdfinfo', 'pdftotext'])
+        self.assertEqual(self.commands, ['pdfinfo', 'pdfinfo', 'pdftotext'])
         self.assertEqual(checked['visual_review'], 'NOT_RUN')
         self.assertEqual(checked['reading_order_review'], 'NOT_RUN')
         self.assertEqual((self.out / 'build.log').read_bytes(), log)

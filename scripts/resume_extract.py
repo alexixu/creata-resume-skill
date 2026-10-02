@@ -36,6 +36,7 @@ MAX_OCR_PAGES = 10
 MAX_COMMAND_BYTES = 20 * 1024 * 1024
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+MC = 'http://schemas.openxmlformats.org/markup-compatibility/2006'
 NS = {'w': W, 'r': R}
 OD = {'office': 'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
       'text': 'urn:oasis:names:tc:opendocument:xmlns:text:1.0',
@@ -150,10 +151,43 @@ def xml_part(package, name):
         raise ExtractionError(f'Missing or damaged XML part: {name}') from error
 
 
+def on_off(node):
+    """OOXML OnOff: an absent value is on; unknown values stay uncertain."""
+    if node is None:
+        return False
+    value = node.get(f'{{{W}}}val')
+    if value is None or value.casefold() in ('true', '1', 'on'):
+        return True
+    if value.casefold() in ('false', '0', 'off'):
+        return False
+    return None
+
+
+def word_children(node):
+    """Select one readable compatibility branch, rather than duplicate both."""
+    if node.tag != f'{{{MC}}}AlternateContent':
+        return list(node)
+    choices = node.findall(f'{{{MC}}}Choice')
+    for choice in choices:
+        if any(item.tag in (f'{{{W}}}p', f'{{{W}}}t', f'{{{W}}}tbl') for item in choice.iter()):
+            return [choice]
+    fallback = node.find(f'{{{MC}}}Fallback')
+    return [fallback] if fallback is not None else choices[:1]
+
+
+def selected_word_nodes(node):
+    yield node
+    for child in word_children(node):
+        yield from selected_word_nodes(child)
+
+
 def word_text(node):
     if node.tag in (f'{{{W}}}del', f'{{{W}}}moveFrom', f'{{{W}}}instrText'):
         return ''
-    if node.tag == f'{{{W}}}r' and node.find('w:rPr/w:vanish', NS) is not None:
+    if node.tag == f'{{{W}}}r' and on_off(node.find('w:rPr/w:vanish', NS)) is True:
+        return ''
+    # Floating textboxes are emitted as their own paragraph blocks by docx().
+    if node.tag == f'{{{W}}}txbxContent':
         return ''
     if node.tag == f'{{{W}}}t':
         return node.text or ''
@@ -163,17 +197,19 @@ def word_text(node):
         return '\n'
     if node.tag == f'{{{W}}}noBreakHyphen':
         return '\u2011'
-    return ''.join(word_text(child) for child in node)
+    return ''.join(word_text(child) for child in word_children(node))
 
 
 def visible_word_nodes(node):
     """Walk displayed nodes without leaking hyperlinks from deleted runs."""
     if node.tag in (f'{{{W}}}del', f'{{{W}}}moveFrom'):
         return
-    if node.tag == f'{{{W}}}r' and node.find('w:rPr/w:vanish', NS) is not None:
+    if node.tag == f'{{{W}}}r' and on_off(node.find('w:rPr/w:vanish', NS)) is True:
         return
     yield node
-    for child in node:
+    if node.tag == f'{{{W}}}txbxContent':
+        return
+    for child in word_children(node):
         yield from visible_word_nodes(child)
 
 
@@ -195,21 +231,94 @@ def docx(result, raw):
         if body is None:
             raise ExtractionError('DOCX has no document body')
         mainrels = relationships(package, 'word/document.xml')
+        styles, default_style = {}, None
+        if 'word/styles.xml' in package.namelist():
+            for style in xml_part(package, 'word/styles.xml').findall('w:style', NS):
+                if style.get(f'{{{W}}}type', 'paragraph') != 'paragraph':
+                    continue
+                style_id = style.get(f'{{{W}}}styleId')
+                if style_id:
+                    if style_id in styles:
+                        styles[style_id] = None
+                        warn(result, f'DOCX duplicate paragraph style {style_id}; list semantics require review')
+                    else:
+                        styles[style_id] = style
+                if style.get(f'{{{W}}}default') in ('1', 'true', 'on'):
+                    default_style = style_id
+
+        def paragraph_numbering(node):
+            """Resolve only structural list intent; never manufacture visible labels."""
+            direct = node.find('w:pPr/w:numPr', NS)
+            pstyle = node.find('w:pPr/w:pStyle', NS)
+            style_id = pstyle.get(f'{{{W}}}val') if pstyle is not None else default_style
+            properties, origins, seen = {}, {}, set()
+            has_numpr, unresolved = direct is not None, False
+            current = style_id
+            while current:
+                if current in seen or len(seen) >= 128:
+                    warn(result, f'DOCX paragraph style inheritance cycle/depth at {current}; list semantics require review')
+                    unresolved = True
+                    break
+                seen.add(current)
+                style = styles.get(current)
+                if style is None:
+                    warn(result, f'DOCX paragraph style {current} is missing/ambiguous; list semantics require review')
+                    unresolved = True
+                    break
+                numbering = style.find('w:pPr/w:numPr', NS)
+                if numbering is not None:
+                    has_numpr = True
+                    for field in ('numId', 'ilvl'):
+                        item = numbering.find(f'w:{field}', NS)
+                        if item is not None and field not in properties:
+                            properties[field] = item.get(f'{{{W}}}val')
+                            origins[field] = 'style:' + current
+                parent = style.find('w:basedOn', NS)
+                current = parent.get(f'{{{W}}}val') if parent is not None else None
+            if direct is not None:
+                for field in ('numId', 'ilvl'):
+                    item = direct.find(f'w:{field}', NS)
+                    if item is not None:
+                        properties[field] = item.get(f'{{{W}}}val')
+                        origins[field] = 'direct'
+            num_id = properties.get('numId')
+            valid_id = isinstance(num_id, str) and re.fullmatch(r'[0-9]+', num_id)
+            if valid_id and not num_id.strip('0'):
+                return {'numbered_paragraph': False, 'numbering_status': 'cancelled',
+                        'numbering_source': origins['numId'], 'num_id': num_id}
+            if valid_id:
+                location = {'numbered_paragraph': True, 'numbering_status': 'list',
+                            'numbering_source': origins['numId'], 'num_id': num_id}
+                if 'ilvl' in properties:
+                    location['numbering_level'] = properties['ilvl']
+                return location
+            if has_numpr or unresolved:
+                warn(result, 'DOCX unresolved automatic list semantics retained as candidates; labels were not invented')
+                return {'numbered_paragraph': direct is not None, 'numbering_candidate': True,
+                        'numbering_status': 'unresolved', 'numbering_source': 'direct' if direct is not None else 'style'}
+            return {}
+
         result['tables'] = []
         table_number = 0
+        textbox_number = 0
 
         def parse_part(container, part, region):
-            nonlocal table_number
+            nonlocal table_number, textbox_number
             rels = relationships(package, part)
             paragraph_number = 0
-            tags = {element.tag for element in container.iter()}
+            selected_nodes = list(selected_word_nodes(container))
+            tags = {element.tag for element in selected_nodes}
             if any(f'{{{W}}}{tag}' in tags for tag in ('del', 'ins', 'moveFrom', 'moveTo')):
                 warn(result, 'DOCX tracked changes present: deleted/moved-from text omitted; inserted text retained for review')
-            if f'{{{W}}}vanish' in tags:
+            if any(element.tag == f'{{{W}}}vanish' and on_off(element) is True for element in selected_nodes):
                 warn(result, 'DOCX hidden text omitted; review the original document')
+            if any(element.tag == f'{{{W}}}vanish' and on_off(element) is None for element in selected_nodes):
+                warn(result, 'DOCX hidden-text flag has an unknown value; text retained for source review')
+            if f'{{{MC}}}AlternateContent' in tags:
+                warn(result, 'DOCX compatibility content: one readable Choice/Fallback branch selected; compare with the rendered source')
 
             def para(node, context=None):
-                nonlocal paragraph_number
+                nonlocal paragraph_number, textbox_number
                 paragraph_number += 1
                 location = {'part': part, 'region': region, 'paragraph': paragraph_number, **(context or {})}
                 links = []
@@ -219,10 +328,17 @@ def docx(result, raw):
                     target = rels.get(link.get(f'{{{R}}}id'), {}).get('Target')
                     if target:
                         links.append({'text': word_text(link), 'target': target})
-                if node.find('w:pPr/w:numPr', NS) is not None:
-                    location['numbered_paragraph'] = True
+                location.update(paragraph_numbering(node))
+                if location.get('numbered_paragraph') or location.get('numbering_candidate'):
                     warn(result, 'DOCX automatic list labels are not rendered; numbered paragraph locators retained')
-                return add(result, f'docx/{part}/p{paragraph_number}', word_text(node), location, links=links)
+                block = add(result, f'docx/{part}/p{paragraph_number}', word_text(node), location, links=links)
+                anchor = paragraph_number
+                for child in visible_word_nodes(node):
+                    if child.tag == f'{{{W}}}txbxContent':
+                        textbox_number += 1
+                        warn(result, 'DOCX floating textbox placement/order requires source review; internal paragraphs retained separately')
+                        walk(child, {**(context or {}), 'textbox': textbox_number, 'anchor_paragraph': anchor})
+                return block
 
             def walk(node, context=None):
                 if node.tag in (f'{{{W}}}del', f'{{{W}}}moveFrom'):
@@ -232,7 +348,7 @@ def docx(result, raw):
                 elif node.tag == f'{{{W}}}tbl':
                     table(node, context)
                 else:
-                    for child in node:
+                    for child in word_children(node):
                         walk(child, context)
 
             def table(node, parent=None):

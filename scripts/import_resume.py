@@ -11,6 +11,7 @@ import shutil
 import sys
 import tempfile
 import unicodedata
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_SOURCE_BYTES = 10 * 1024 * 1024
@@ -52,6 +53,8 @@ DATE_ATOM = (r'(?:(?:19|20)\d{2}(?:[./\-]\d{1,2}|年\d{1,2}月)?年?|'
 DATE_SPAN = re.compile(DATE_ATOM + r'\s*(?:[-–—~至到]|\bto\b)\s*(?:' + DATE_ATOM + r'|present|now|至今)', re.I)
 BULLET = re.compile(r'^\s*(?:[-*•●▪◦‣]\s*|\d+[.)、]\s+)(.+)$', re.S)
 DATE_SECTIONS = {'experience', 'projects', 'education'}
+DATED_ACTION = re.compile(r'^(?:supported|built|maintained|implemented|created|contributed|led|wrote|developed|'
+                          r'delivered|coordinated|documented|managed)\b', re.I)
 
 
 def heading_key(value):
@@ -71,7 +74,7 @@ def candidate_name(value):
         result = label[1].strip()
         return result if len(result) <= 100 else None
     value = value.strip()
-    if heading_key(value) or EMAIL.search(value) or URL.search(value) or PHONE.search(value):
+    if heading_key(value) or extra_heading(value) or EMAIL.search(value) or URL.search(value) or PHONE.search(value):
         return None
     if re.search(r'resume|curriculum|vitae|engineer|manager|developer|designer|analyst|candidate profile|'
                  r'求职|简历|经理|工程师|设计师|毕业|大学|公司|学院|产品|运营|研究员', value, re.I):
@@ -88,17 +91,36 @@ def contact_candidate(value):
     return len(value) <= 180 and not '\n' in value and bool(EMAIL.search(value) or URL.search(value) or PHONE.search(value))
 
 
-def unknown_heading(value):
-    """Recognize explicit extra headings without assigning occupational meaning."""
-    return bool(re.fullmatch(r'#+\s+[^\n]{1,80}', value) or
-                re.fullmatch(r'(?:Other |Additional )?(?:Awards|Publications|Interests|Languages|References|'
+def extra_heading(value):
+    return bool(re.fullmatch(r'(?:Other |Additional )?(?:Awards(?:\s+(?:and|&)\s+Honou?rs)?|'
+                             r'Honou?rs(?:\s+(?:and|&)\s+Awards)?|Publications|Interests|Languages|References|'
                              r'Activities|Notes|Original Notes|Volunteer Activities)', value, re.I) or
                 value in ('其他说明', '其他信息', '获奖经历', '兴趣爱好', '志愿经历', '学术成果', '发表论文'))
 
 
+def unknown_heading(value):
+    """Recognize explicit extra headings without assigning occupational meaning."""
+    return bool(re.fullmatch(r'#+\s+[^\n]{1,80}', value) or extra_heading(value))
+
+
 def same_flow(left, right):
     return all(left['locator'].get(key) == right['locator'].get(key)
-               for key in ('region', 'page', 'column', 'table'))
+               for key in ('part', 'region', 'page', 'column', 'table', 'textbox'))
+
+
+def automatic_list(item):
+    locator = item['locator']
+    return bool(locator.get('numbered_paragraph') or locator.get('numbering_candidate'))
+
+
+def date_header(value):
+    # A dated action sentence is body copy, even if an old document lost its
+    # list styling. Explicit date spans alone are not proof of an entry header.
+    match = DATE_SPAN.search(value)
+    if (match and DATED_ACTION.match(value)
+            and re.search(r'\b(?:from|during|between|in|over)\s*$', value[:match.start()], re.I)):
+        return None
+    return match
 
 
 def language_choice(text):
@@ -123,14 +145,55 @@ def safe_output(inputs, output):
 
 def segments(source):
     for block in source['extraction']['blocks']:
-        for index, line in enumerate(block['text'].splitlines()):
+        lines = block['text'].splitlines()
+        links = [copy.deepcopy(link) for link in block.get('links', [])
+                 if isinstance(link, dict) and isinstance(link.get('target'), str)]
+        for index, line in enumerate(lines):
             if not line.strip():
                 continue
             yield {'text': line.strip(), 'raw_text': line,
                    'indent': len(line.expandtabs(8)) - len(line.expandtabs(8).lstrip(' ')),
                    'block_id': block['id'], 'locator': {
                 **block['locator'], 'line_in_block': index + 1}, 'source_id': source['id'],
-                'sha256': source['sha256']}
+                'sha256': source['sha256'], 'links': links,
+                'line_links': [link for link in links if len(lines) == 1 or
+                               isinstance(link.get('text'), str) and link['text'].strip()
+                               and link['text'].strip() in line]}
+
+
+def linked_contacts(item):
+    """Expose explicit header link targets as unconfirmed contact candidates."""
+    contacts = []
+    for link in item.get('line_links', []):
+        target = link['target'].strip()
+        if not target or len(target) > 180 or any(unicodedata.category(c) == 'Cc' for c in target):
+            continue
+        try:
+            parsed = urlsplit(target)
+            if parsed.scheme.lower() == 'mailto':
+                candidate = unquote(parsed.path)
+                if not EMAIL.fullmatch(candidate):
+                    continue
+            elif parsed.scheme.lower() in ('http', 'https') and parsed.hostname:
+                candidate = target
+            else:
+                continue
+        except ValueError:
+            continue
+        if candidate not in contacts:
+            contacts.append(candidate)
+    return contacts
+
+
+def nonlink_text(item):
+    value = item['text']
+    for link in item.get('line_links', []):
+        if not linked_contacts({'line_links': [link]}):
+            continue
+        label = link.get('text')
+        if isinstance(label, str) and label.strip():
+            value = value.replace(label.strip(), '', 1)
+    return value.strip(' \t|·•,;/：:–—-')
 
 
 def layout_risk(source):
@@ -149,10 +212,13 @@ def new_profile(language):
 
 
 def claim(item, path=None, interpretation='original_bullet'):
-    return {'text': item.get('raw_text', item['text']), 'source': {'id': item['source_id'], 'block_id': item['block_id'],
+    record = {'text': item.get('raw_text', item['text']), 'source': {'id': item['source_id'], 'block_id': item['block_id'],
             'locator': item['locator'], 'sha256': item['sha256']},
             'resume_paths': [path] if path else [], 'status': 'source_only',
             'interpretation': interpretation, 'needs_review': True}
+    if item.get('links'):
+        record['source']['links'] = copy.deepcopy(item['links'])
+    return record
 
 
 def organize_text(source, language):
@@ -171,54 +237,73 @@ def organize_text(source, language):
         current = len(data['sections']) - 1
         return current
 
-    def keep(item, section_index, interpretation='original_bullet', value=None):
+    def keep(item, section_index, interpretation='original_bullet', value=None, record=None):
         entries = data['sections'][section_index]['entries']
         if not entries:
             entries.append({'heading': '', 'date': '', 'bullets': []})
         entry = entries[-1]
         entry.setdefault('bullets', []).append(item['text'] if value is None else value)
         path = f'sections[{section_index}].entries[{len(entries)-1}].bullets[{len(entry["bullets"])-1}]'
-        facts.append(claim(item, path, interpretation))
+        if record is None:
+            facts.append(claim(item, path, interpretation))
+        else:
+            record['resume_paths'].append(path)
         if interpretation == 'unclassified':
             remaining.append({'claim_index': len(facts) - 1, 'reason': 'layout_ambiguity'
                               if ambiguous or 'table' in item['locator'] else 'not_classified'})
 
-    def unclassified_keep(item):
+    def unclassified_keep(item, record=None):
         nonlocal unclassified, current
         if unclassified is None:
             old = current
             unclassified = section('unclassified', '原文待归类' if language == 'zh' else 'Source Content to Classify')
             current = old
-        keep(item, unclassified, 'unclassified')
+        keep(item, unclassified, 'unclassified', record=record)
 
     index = 0
     while index < len(lines):
         item = lines[index]
-        value, key = item['text'], heading_key(item['text'])
+        value = item['text']
+        list_content = automatic_list(item)
+        key = None if list_content else heading_key(value)
         if key:
             last_bullet = None
             section_index = section(key, renderer.TITLES[key][language == 'en'])
             facts.append(claim(item, f'sections[{section_index}].title', 'section_candidate'))
             index += 1
             continue
-        if unknown_heading(value):
-            last_bullet = None
-            section_index = section('unclassified', value.strip('# ').strip())
-            facts.append(claim(item, f'sections[{section_index}].title', 'unsupported_section_candidate'))
-            remaining.append({'claim_index': len(facts) - 1, 'reason': 'unsupported_section_heading'})
-            index += 1
-            continue
-        named = candidate_name(value) if index == 0 or NAME_LABEL.fullmatch(value) else None
+        named = candidate_name(value) if not list_content and (index == 0 or NAME_LABEL.fullmatch(value)) else None
         if named and not data['name']:
             last_bullet = None
             data['name'] = named
             facts.append(claim(item, 'name', 'name_candidate'))
             index += 1
             continue
-        if current is None and contact_candidate(value):
+        if not list_content and unknown_heading(value):
             last_bullet = None
-            data['contacts'].append(value)
-            facts.append(claim(item, f'contacts[{len(data["contacts"])-1}]', 'contact_candidate'))
+            section_index = section('unclassified', value.strip('# ').strip())
+            facts.append(claim(item, f'sections[{section_index}].title', 'unsupported_section_candidate'))
+            remaining.append({'claim_index': len(facts) - 1, 'reason': 'unsupported_section_heading'})
+            index += 1
+            continue
+        targets = linked_contacts(item) if current is None and not list_content else []
+        if current is None and not list_content and (contact_candidate(value) or targets):
+            last_bullet = None
+            contacts = [value] if contact_candidate(value) else []
+            visible_targets = {match.group().rstrip('),;|') for pattern in (EMAIL, URL)
+                               for match in pattern.finditer(value)}
+            contacts.extend(target for target in targets if target not in visible_targets)
+            record = claim(item, interpretation='linked_contact_candidate' if targets else 'contact_candidate')
+            for contact in contacts:
+                if contact not in data['contacts']:
+                    data['contacts'].append(contact)
+                record['resume_paths'].append(f'contacts[{data["contacts"].index(contact)}]')
+            facts.append(record)
+            if targets and not contact_candidate(value) and nonlink_text(item):
+                # A contact link does not account for other visible text on the
+                # same line. Keep that complete line for editorial review while
+                # mapping its single source record to both output locations.
+                unclassified_keep(item, record=record)
             index += 1
             continue
         if current is None or ambiguous or 'table' in item['locator']:
@@ -229,10 +314,13 @@ def organize_text(source, language):
         entries = data['sections'][current]['entries']
         base_key = data['sections'][current]['id'].split('-')[0]
         is_bullet = BULLET.match(value)
-        if (last_bullet and not is_bullet and not DATE_SPAN.search(value)
+        new_list_item = bool(is_bullet or list_content and item['locator']['line_in_block'] == 1)
+        same_word_item = (list_content and last_bullet and automatic_list(last_bullet['anchor'])
+                          and item['locator']['line_in_block'] > 1)
+        if (last_bullet and not new_list_item and (same_word_item or not DATE_SPAN.search(value))
                 and item['block_id'] == last_bullet['anchor']['block_id']
                 and same_flow(item, last_bullet['anchor'])
-                and item['indent'] > last_bullet['anchor']['indent']):
+                and (same_word_item or item['indent'] > last_bullet['anchor']['indent'])):
             entry = data['sections'][last_bullet['section']]['entries'][last_bullet['entry']]
             previous = entry['bullets'][last_bullet['bullet']]
             # Preserve any printed hyphen; its linguistic meaning requires review.
@@ -242,25 +330,25 @@ def organize_text(source, language):
                                if previous.endswith('-') else 'continuation_candidate'))
             index += 1
             continue
-        match = DATE_SPAN.search(value) if base_key in DATE_SECTIONS and not is_bullet and len(value) <= 220 else None
+        match = date_header(value) if base_key in DATE_SECTIONS and not new_list_item and not list_content and len(value) <= 220 else None
         # Single-column dated headers can span one or two adjacent short lines.
         following = []
-        if base_key in DATE_SECTIONS and not is_bullet and not match and len(value) <= 140:
+        if base_key in DATE_SECTIONS and not new_list_item and not list_content and not match and len(value) <= 140:
             for offset in (1, 2):
                 if index + offset >= len(lines):
                     break
                 nxt = lines[index + offset]
-                if (not same_flow(item, nxt) or heading_key(nxt['text']) or unknown_heading(nxt['text'])
+                if (not same_flow(item, nxt) or automatic_list(nxt) or heading_key(nxt['text']) or unknown_heading(nxt['text'])
                         or BULLET.match(nxt['text']) or len(nxt['text']) > 140):
                     break
-                nxt_match = DATE_SPAN.search(nxt['text'])
+                nxt_match = date_header(nxt['text'])
                 following.append(nxt)
                 if nxt_match:
                     match = nxt_match
                     break
             else:
                 following = []
-            if not following or not DATE_SPAN.search(following[-1]['text']):
+            if not following or not date_header(following[-1]['text']):
                 following = []
         if match:
             last_bullet = None
@@ -277,7 +365,7 @@ def organize_text(source, language):
             # adjacency, not a claim that the date or employer is verified.
             if not headings and index + 1 < len(lines):
                 nxt = lines[index + 1]
-                if (same_flow(item, nxt) and not heading_key(nxt['text']) and not unknown_heading(nxt['text'])
+                if (same_flow(item, nxt) and not automatic_list(nxt) and not heading_key(nxt['text']) and not unknown_heading(nxt['text'])
                         and not BULLET.match(nxt['text']) and len(nxt['text']) <= 140):
                     header_items.append(nxt)
                     headings.append(nxt['text'])
@@ -299,14 +387,14 @@ def organize_text(source, language):
                 facts.append(record)
             index += len(header_items)
             continue
-        possible_continuation = (last_bullet and not is_bullet and
+        possible_continuation = (last_bullet and not new_list_item and
                                  (item['indent'] > last_bullet['anchor']['indent'] or
                                   len(value) < 50 and value[:1].islower()))
         interpretation = ('unclassified' if base_key == 'unclassified' else
                           'continuation_unmerged_candidate' if possible_continuation else 'original_bullet')
         keep(item, current, interpretation=interpretation,
              value=is_bullet[1].strip() if is_bullet else value)
-        if is_bullet and base_key != 'unclassified':
+        if new_list_item and base_key != 'unclassified':
             last_bullet = {'anchor': item, 'path': facts[-1]['resume_paths'][0], 'section': current,
                            'entry': len(entries) - 1, 'bullet': len(entries[-1]['bullets']) - 1}
         else:
@@ -489,6 +577,8 @@ def evidence_markdown(evidence):
                   '- Locator: ' + renderer.md_escape(json.dumps(source['locator'], ensure_ascii=False)),
                   '- Resume paths: ' + ', '.join(fact['resume_paths']),
                   '- Interpretation: ' + fact['interpretation'], '', renderer.md_escape(fact['text']), '']
+        if source.get('links'):
+            lines += ['Source links: ' + renderer.md_escape(json.dumps(source['links'], ensure_ascii=False)), '']
     return '\n'.join(lines)
 
 
