@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "status": "COACHING_STARTING_POINT",
+  "language": "zh",
+  "requested_target": null,
+  "improvements": [
+    {
+      "kind": "source_review",
+      "title": "先复核来源与归类",
+      "reason": "提取或归类有疑点；候选结构需要和原文件核对。",
+      "resume_paths": [
+        "sections[0].entries[0].bullets[0]"
+      ],
+      "fact_ids": [
+        "claim-000003"
+      ],
+      "source_quotes": [
+        "产品运营助理"
+      ],
+      "suggestion": "保留全部原文；复核后再调整结构，未知项继续待确认。",
+      "status": "proposal"
+    },
+    {
+      "kind": "result_scope",
+      "title": "补齐结果口径",
+      "reason": "旧稿的数字或效果说法还没有当前用户确认。",
+      "resume_paths": [
+        "sections[1].entries[0].bullets[0]"
+      ],
+      "fact_ids": [
+        "claim-000007"
+      ],
+      "source_quotes": [
+        "主导门店报表标准化，覆盖 3 家门店，效率提升 30%。"
+      ],
+      "suggestion": "口径不明时，改用实际交付物、使用范围或已知反馈，不补造百分比。",
+      "status": "proposal"
+    },
+    {
+      "kind": "personal_action",
+      "title": "写清个人动作与取舍",
+      "reason": "职责或团队成果需要拆出本人做的部分。",
+      "resume_paths": [
+        "sections[1].entries[0].bullets[0]"
+      ],
+      "fact_ids": [
+        "claim-000007"
+      ],
+      "source_quotes": [
+        "主导门店报表标准化，覆盖 3 家门店，效率提升 30%。"
+      ],
+      "suggestion": "按“遇到的问题 → 自己的动作与选择 → 已知交付或结果”改写；职责归属保持保守。",
+      "status": "proposal"
+    }
+  ],
+  "questions": [
+    {
+      "kind": "source_review",
+      "question": "原文件中的姓名、日期、章节归类或识别遗漏应如何修正？",
+      "fact_ids": [
+        "claim-000003"
+      ],
+      "resume_paths": [
+        "sections[0].entries[0].bullets[0]"
+      ]
+    },
+    {
+      "kind": "result_scope",
+      "question": "“主导门店报表标准化，覆盖 3 家门店，效率提升 30%。”的基线、周期与计算方式是什么？不清楚可以直接说明。",
+      "fact_ids": [
+        "claim-000007"
+      ],
+      "resume_paths": [
+        "sections[1].entries[0].bullets[0]"
+      ]
+    },
+    {
+      "kind": "personal_action",
+      "question": "在“主导门店报表标准化，覆盖 3 家门店，效率提升 30%。”中，你亲自完成了哪一步、做了什么选择？谁负责其余部分？",
+      "fact_ids": [
+        "claim-000007"
+      ],
+      "resume_paths": [
+        "sections[1].entries[0].bullets[0]"
+      ]
+    }
+  ],
+  "stories": [
+    {
+      "heading": "示例协作公司 / 产品运营助理",
+      "date": "2022.07 - 2025.06",
+      "resume_paths": [
+        "sections[1].entries[0]"
+      ],
+      "fact_ids": [
+        "claim-000005",
+        "claim-000006",
+        "claim-000007",
+        "claim-000008"
+      ],
+      "source_quotes": [
+        "主导门店报表标准化，覆盖 3 家门店，效率提升 30%。",
+        "使用 Excel 整理每周销售报表，制定字段说明和交接模板。"
+      ],
+      "status": "source_only_draft",
+      "draft": "旧稿记载：主导门店报表标准化，覆盖 3 家门店，效率提升 30%。；使用 Excel 整理每周销售报表，制定字段说明和交接模板。",
+      "gaps": [
+        "当时的具体问题和约束",
+        "本人行动、选择及协作者分工",
+        "可确认的结果或交付证据"
+      ]
+    },
+    {
+      "heading": "示例工具公司 / 客服实习生",
+      "date": "2021.07 - 2022.06",
+      "resume_paths": [
+        "sections[1].entries[1]"
+      ],
+      "fact_ids": [
+        "claim-000009",
+        "claim-000010",
+        "claim-000011",
+        "claim-000012"
+      ],
+      "source_quotes": [
+        "参与整理用户反馈和产品需求，负责用户沟通。",
+        "将重复的表单问题归类，协助产品经理整理验收用例。"
+      ],
+      "status": "source_only_draft",
+      "draft": "旧稿记载：参与整理用户反馈和产品需求，负责用户沟通。；将重复的表单问题归类，协助产品经理整理验收用例。",
+      "gaps": [
+        "当时的具体问题和约束",
+        "本人行动、选择及协作者分工",
+        "可确认的结果或交付证据"
+      ]
+    }
+  ],
+  "directions": [
+    {
+      "role": "product",
+      "label": "产品协作",
+      "status": "exploratory",
+      "fact_ids": [
+        "claim-000011",
+        "claim-000012",
+        "claim-000016"
+      ],
+      "source_quotes": [
+        "参与整理用户反馈和产品需求，负责用户沟通。",
+        "将重复的表单问题归类，协助产品经理整理验收用例。",
+        "汇总客服记录，将填写错误和状态查询问题分组，提交给产品经理。"
+      ],
+      "basis": "旧稿存在相关任务线索，尚待用户复核。",
+      "gaps": "问题定义、优先级决策与效果验证",
+      "tradeoff": "可从已有任务切入；仍需确认是否喜欢这类工作，并补目标岗位所需证据。"
+    },
+    {
+      "role": "data",
+      "label": "数据分析",
+      "status": "exploratory",
+      "fact_ids": [
+        "claim-000007",
+        "claim-000008"
+      ],
+      "source_quotes": [
+        "主导门店报表标准化，覆盖 3 家门店，效率提升 30%。",
+        "使用 Excel 整理每周销售报表，制定字段说明和交接模板。"
+      ],
+      "basis": "旧稿存在相关任务线索，尚待用户复核。",
+      "gaps": "数据口径、分析方法与结论应用",
+      "tradeoff": "可从已有任务切入；仍需确认是否喜欢这类工作，并补目标岗位所需证据。"
+    },
+    {
+      "role": "sales",
+      "label": "客户成功与销售支持",
+      "status": "exploratory",
+      "fact_ids": [
+        "claim-000008"
+      ],
+      "source_quotes": [
+        "使用 Excel 整理每周销售报表，制定字段说明和交接模板。"
+      ],
+      "basis": "旧稿存在相关任务线索，尚待用户复核。",
+      "gaps": "客户范围、个人负责环节与业务结果",
+      "tradeoff": "可从已有任务切入；仍需确认是否喜欢这类工作，并补目标岗位所需证据。"
+    }
+  ],
+  "direction_notice": "方向是基于旧稿的探索线索，不证明胜任；缺少线索时不硬凑方向。",
+  "notice": "本地规则生成的访谈起点。旧稿全部仍待复核，聊天中需完善正文、故事与方向；不是真实性核验、ATS评分或录用预测。"
+}

@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "resume": "current-resume.json",
+  "facts_confirmed": false,
+  "record": "record.json",
+  "turn": 3,
+  "mapping": [
+    {
+      "path": "name",
+      "fact_ids": [
+        "claim-000001"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "contacts[0]",
+      "fact_ids": [
+        "claim-000002"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "headline",
+      "fact_ids": [
+        "user-009"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[0].entries[0].bullets[0]",
+      "fact_ids": [
+        "user-001",
+        "user-004",
+        "user-005"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[1].entries[0].heading",
+      "fact_ids": [
+        "claim-000005"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[1].entries[0].date",
+      "fact_ids": [
+        "claim-000006"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[1].entries[0].bullets[0]",
+      "fact_ids": [
+        "user-001"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[1].entries[0].bullets[1]",
+      "fact_ids": [
+        "user-007"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[1].entries[0].bullets[2]",
+      "fact_ids": [
+        "user-008"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[1].entries[0].bullets[3]",
+      "fact_ids": [
+        "user-002"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[1].entries[1].heading",
+      "fact_ids": [
+        "claim-000009"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[1].entries[1].date",
+      "fact_ids": [
+        "claim-000010"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[1].entries[1].bullets[0]",
+      "fact_ids": [
+        "claim-000011",
+        "claim-000012"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[2].entries[0].heading",
+      "fact_ids": [
+        "claim-000014"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[2].entries[0].date",
+      "fact_ids": [
+        "claim-000015"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[2].entries[0].bullets[0]",
+      "fact_ids": [
+        "user-004"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[2].entries[0].bullets[1]",
+      "fact_ids": [
+        "user-004"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[3].entries[0].heading",
+      "fact_ids": [
+        "claim-000018"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[3].entries[0].date",
+      "fact_ids": [
+        "claim-000019"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[3].entries[0].bullets[0]",
+      "fact_ids": [
+        "claim-000020"
+      ],
+      "status": "source_only"
+    },
+    {
+      "path": "sections[4].entries[0].bullets[0]",
+      "fact_ids": [
+        "user-001",
+        "user-008"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[4].entries[0].bullets[1]",
+      "fact_ids": [
+        "user-006"
+      ],
+      "status": "user_confirmed"
+    },
+    {
+      "path": "sections[5].entries[0].bullets[0]",
+      "fact_ids": [
+        "user-011",
+        "claim-000002",
+        "claim-000011",
+        "claim-000012"
+      ],
+      "status": "mixed_status_annotation"
+    }
+  ],
+  "stories": [
+    {
+      "id": "story-report-v3",
+      "text": "经理确定报表字段后，我负责把不同格式的门店报表整理为 Excel 模板并写字段说明。原报表经常漏填门店编号，日期格式也不统一，我就在模板中标出漏填项、统一日期填写格式，并做一份故意漏填和日期格式不一致的样表来检查。模板供两家门店每周使用，持续约三个月。这段经历能说明我把具体填写问题整理成可用工具，并做了样表检查；没有统计效率提升幅度。",
+      "fact_ids": [
+        "user-001",
+        "user-002",
+        "user-003",
+        "user-007",
+        "user-008"
+      ],
+      "status": "user_confirmed",
+      "missing": [
+        "检查是否覆盖其他情况、量化业务效果未知；本版不补造，也不继续追问。"
+      ]
+    },
+    {
+      "id": "story-feedback-v3",
+      "text": "我从客服记录中整理重复出现的填写错误和状态查询问题，把它们分类后交给产品经理，并参与整理验收用例。我的贡献是问题分类、信息交接和验收协作。目前不知道后续是否上线，也没有业务效果信息，所以故事讲到这些已完成的工作为止，不延伸为我决定了产品方案或推动了上线。",
+      "fact_ids": [
+        "user-004",
+        "user-010"
+      ],
+      "status": "user_confirmed",
+      "missing": [
+        "没有可确认的上线或后续业务效果；本版保留边界，不阻塞交付。"
+      ]
+    }
+  ],
+  "directions": [
+    {
+      "id": "product-ops",
+      "priority": 1,
+      "label": "主方向：偏用户反馈与工具改进的产品运营",
+      "fact_ids": [
+        "user-001",
+        "user-002",
+        "user-004",
+        "user-005",
+        "user-007",
+        "user-008",
+        "user-009"
+      ],
+      "basis": "反馈分类、验收协作、模板整理和异常样表检查是可讲的任务；实际采用范围已有用户确认，且用户明确选择此方向。",
+      "emphasis": "将反馈分类、验收协作与工具检查放在概览和要点前部，保留正式职位与时间。",
+      "gap": "反馈被采用后的闭环、效果观察仍缺；不能声称主导产品或带来业务增长。",
+      "tradeoff": "可沿用当前真实任务并符合偏好，但岗位职责差异很大，读具体 JD 时需辨认是否仍以催报表为主。"
+    },
+    {
+      "id": "product",
+      "priority": 2,
+      "label": "次方向：产品助理；产品经理作为后续探索",
+      "fact_ids": [
+        "user-004",
+        "user-005",
+        "user-008",
+        "user-009"
+      ],
+      "basis": "反馈归类、验收协作及样表检查能展示问题整理和基础验证动作。",
+      "emphasis": "改投时优先讲表单反馈的分类与交接，报表故事作为检查方法的补充，而不是只更换目标标题。",
+      "gap": "尚无个人需求优先级、方案决策、跨方推进或上线闭环证据；样表检查不等同完整产品验证。",
+      "tradeoff": "贴近用户偏好，但现有证据支持协作参与；不能用产品经理头衔替代真实的产品运营助理职位。"
+    },
+    {
+      "id": "data",
+      "priority": 3,
+      "label": "第三方向：数据分析，暂作探索",
+      "fact_ids": [
+        "user-001",
+        "user-002",
+        "user-005",
+        "user-006",
+        "user-007",
+        "user-008"
+      ],
+      "basis": "已有数据格式整理、漏填检查和 Excel 工具实践；SQL 仅课程基础。",
+      "emphasis": "如改投，优先保留数据质量问题、规范方法及样表检查，弱化需求协作描述。",
+      "gap": "没有工作 SQL 项目、独立分析结论及结论应用证据。",
+      "tradeoff": "可以从已有数据整理能力继续学习，但与完整分析岗位要求的距离需要具体 JD 判断；若工作主要是催报表，会与本人偏好冲突。"
+    }
+  ],
+  "superseded": [
+    {
+      "fact_id": "claim-000007",
+      "superseded_by": [
+        "user-001",
+        "user-002",
+        "user-003"
+      ],
+      "reason": "User explicitly withdrew leading role, corrected three to two stores, and withdrew unmeasured 30% gain."
+    }
+  ],
+  "unresolved_source_claims": [
+    {
+      "fact_id": "claim-000008",
+      "note": "Current personal actions are supported by user-001; old hand-over-template statement is not promoted."
+    },
+    {
+      "fact_id": "claim-000022",
+      "note": "SQL scope now uses user-006 only; unreviewed pivot-table/formula statement omitted from current skill claims."
+    }
+  ],
+  "migration": {
+    "automatic": false,
+    "guide": "../../references/versions.md",
+    "source_only": "pending",
+    "user_confirmed": "confirmed only for the specific supported value; split mixed source claims before migration",
+    "note": "No facts.py workspace was created in this short single-version trial. Source IDs and exact user quotes remain in record.json."
+  },
+  "qa": {
+    "renderer_schema": "PENDING",
+    "pdf_generated": false,
+    "pdf_visual": "NOT_RUN",
+    "pdf_reading_order": "NOT_RUN"
+  },
+  "evidence_boundary": "Executed same-model directed simulation using fictional data; source and structure checking is not writing-quality, real-user or hiring-outcome evaluation."
+}

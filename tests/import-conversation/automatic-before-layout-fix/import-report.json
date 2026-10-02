@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "status": "DRAFT_NEEDS_REVIEW",
+  "needs_review": true,
+  "language": "zh",
+  "language_method": "text_heuristic",
+  "role": null,
+  "requested_target": null,
+  "source_count": 1,
+  "facts_confirmed": false,
+  "coverage": {
+    "source_blocks": 2,
+    "segments": 22,
+    "accounted_segments": 22,
+    "unclassified_segments": 16
+  },
+  "conflicts": [],
+  "source_statuses": [
+    {
+      "id": "source-001",
+      "status": "extracted",
+      "format": "pdf",
+      "method": "poppler-layout",
+      "needs_review": true
+    }
+  ],
+  "warnings": [
+    "source-001: PDF layout extraction does not establish semantic reading order; compare with rendered source pages",
+    "Symlink or aliased input resolved to the reported real path; original input was not changed.",
+    "Layout ambiguity: adjacent heading/date merging was disabled for affected sources.",
+    "Target role was not inferred; choose a role or JD during the conversation.",
+    "Unclassified source text or metadata was preserved; review grouping and candidate headings."
+  ],
+  "structure_candidates": [
+    {
+      "fact_id": "claim-000001",
+      "kind": "name_candidate",
+      "paths": [
+        "name"
+      ]
+    },
+    {
+      "fact_id": "claim-000002",
+      "kind": "contact_candidate",
+      "paths": [
+        "contacts[0]"
+      ]
+    },
+    {
+      "fact_id": "claim-000004",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[1].title"
+      ]
+    },
+    {
+      "fact_id": "claim-000013",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[2].title"
+      ]
+    },
+    {
+      "fact_id": "claim-000017",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[3].title"
+      ]
+    },
+    {
+      "fact_id": "claim-000021",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[4].title"
+      ]
+    }
+  ],
+  "notice": "Imported content is source material, not verified fact. Review candidates, dates, reading order and unclassified blocks before final delivery."
+}

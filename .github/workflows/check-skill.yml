@@ -56,6 +56,18 @@ jobs:
               python3 scripts/resume.py check "$RUNNER_TEMP/resume-review/$language-$theme"
             done
           done
+      - name: Import actual PDFs and rebuild editable drafts
+        shell: bash
+        run: |
+          for language in zh en; do
+            python3 scripts/import_resume.py "$RUNNER_TEMP/resume-review/$language-plain/resume.pdf" \
+              --out "$RUNNER_TEMP/resume-import/$language" --language "$language"
+            for theme in classic plain; do
+              python3 scripts/resume.py render "$RUNNER_TEMP/resume-import/$language/resume.json" \
+                --out "$RUNNER_TEMP/resume-review/import-$language-$theme" --theme "$theme" --draft --pdf
+              python3 scripts/resume.py check "$RUNNER_TEMP/resume-review/import-$language-$theme" --draft
+            done
+          done
       - name: Upload review artifacts
         if: always()
         uses: actions/upload-artifact@v4

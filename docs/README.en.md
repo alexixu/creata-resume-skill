@@ -14,9 +14,13 @@ Start a new Codex conversation:
 
 Ten templates cover software, data/ML, product, design, marketing, sales/customer success, finance, operations, graduates and career transitions. The six-dimension rubric explains its evidence and unassessed areas; it is not a hiring prediction or ATS score. [Sources and adaptation limits](../references/sources.md).
 
+Provide an old PDF, Word document, image or text file to [import a complete editable draft](../references/importing.md) with source locations. The conversation then develops concrete improvements, focused questions, experience stories and exploratory career directions. Imported claims remain unconfirmed until reviewed.
+
 Python 3.9+ is sufficient for editable output. PDF generation additionally requires Tectonic and Poppler.
 
 ```bash
+python3 scripts/import_resume.py /path/to/old-resume.pdf --out /tmp/my-resume/imported
+# Review source records, resume.md and review.md in conversation.
 python3 scripts/resume.py init --role software --language en --output /tmp/my-resume/profile.json
 # Fill and confirm real facts first, then:
 python3 scripts/resume.py render /tmp/my-resume/profile.json --out /tmp/my-resume/v1 --theme plain --pdf
@@ -27,6 +31,8 @@ python3 scripts/resume.py check /tmp/my-resume/v1
 ```
 
 Outputs include JSON, Markdown, plain text, LaTeX and optionally PDF. `classic` retains section icons; `plain` uses sequential text without decorative icons. Both need visual and text-order review. Unconfirmed drafts require `--draft`. [Schema and delivery steps](../references/delivery.md).
+
+Text PDFs require Poppler; scanned PDFs and images use local macOS Swift/Vision or an installed Tesseract. DOCX and common text formats use the standard library; legacy DOC/RTF use macOS `textutil`. Extraction and candidate grouping require source comparison. Files are not uploaded.
 
 For bilingual or role-specific versions, [shared facts](../references/versions.md) can generate linked drafts and mark earlier exports stale after a correction. Fact sources and confirmation remain editorial responsibilities; synchronization does not verify truth or score a resume.
 

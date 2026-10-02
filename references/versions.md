@@ -8,7 +8,7 @@
 
 合同版本为 `schema_version: 1`，只接受已声明的字段：
 
-- `facts`：每项有稳定 `id`、记录原话与来源位置的 `source`、`status`（`confirmed` / `pending`）、唯一 `value`（字符串或整数）和 `expressions`（`zh` / `en`）。`confirmed` 表示用户已确认或已读来源支持，不代表独立事实核实。
+- `facts`：每项有稳定 `id`、记录原话与来源位置的 `source`、`status`（`confirmed` / `pending`）、唯一 `value`（字符串或整数）和 `expressions`（`zh` / `en`）。`confirmed` 表示本轮用户已确认或明确复核认可的来源支持，不代表独立事实核实。旧简历导入账本的 `source_only` 必须映射为 `pending`，不能仅因读过旧稿就标 `confirmed`；迁移时保留来源 ID 与定位。
 - `versions`：每项有单段小写 `id`、使用渲染器现有格式的 `resume` 模板、`bindings`、`summary` 和 `basis`。
 - `bindings`：`path` 必须是模板中可显示的字符串字段，例如 `sections[1].entries[0].bullets[0]`。用 `template` 与 `refs` 显式关联事实 ID；同一路径不能绑定两次，不能绑定整个对象。不会猜测近似字段名或执行字符串替换。
 - `summary`：同样以 `template` / `refs` 生成的当前版本摘要。

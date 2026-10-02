@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "status": "DRAFT_NEEDS_REVIEW",
+  "needs_review": true,
+  "language": "zh",
+  "language_method": "text_heuristic",
+  "role": null,
+  "requested_target": null,
+  "source_count": 1,
+  "facts_confirmed": false,
+  "coverage": {
+    "source_blocks": 2,
+    "segments": 22,
+    "accounted_segments": 22,
+    "unclassified_segments": 1
+  },
+  "conflicts": [],
+  "source_statuses": [
+    {
+      "id": "source-001",
+      "status": "extracted",
+      "format": "pdf",
+      "method": "poppler-layout",
+      "needs_review": true
+    }
+  ],
+  "warnings": [
+    "source-001: PDF layout extraction does not establish semantic reading order; compare with rendered source pages",
+    "Symlink or aliased input resolved to the reported real path; original input was not changed.",
+    "Target role was not inferred; choose a role or JD during the conversation.",
+    "Unclassified source text or metadata was preserved; review grouping and candidate headings."
+  ],
+  "structure_candidates": [
+    {
+      "fact_id": "claim-000001",
+      "kind": "name_candidate",
+      "paths": [
+        "name"
+      ]
+    },
+    {
+      "fact_id": "claim-000002",
+      "kind": "contact_candidate",
+      "paths": [
+        "contacts[0]"
+      ]
+    },
+    {
+      "fact_id": "claim-000004",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[1].title"
+      ]
+    },
+    {
+      "fact_id": "claim-000005",
+      "kind": "entry_heading_candidate",
+      "paths": [
+        "sections[1].entries[0].heading"
+      ]
+    },
+    {
+      "fact_id": "claim-000006",
+      "kind": "date_candidate",
+      "paths": [
+        "sections[1].entries[0].date"
+      ]
+    },
+    {
+      "fact_id": "claim-000009",
+      "kind": "entry_heading_candidate",
+      "paths": [
+        "sections[1].entries[1].heading"
+      ]
+    },
+    {
+      "fact_id": "claim-000010",
+      "kind": "date_candidate",
+      "paths": [
+        "sections[1].entries[1].date"
+      ]
+    },
+    {
+      "fact_id": "claim-000013",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[2].title"
+      ]
+    },
+    {
+      "fact_id": "claim-000014",
+      "kind": "entry_heading_candidate",
+      "paths": [
+        "sections[2].entries[0].heading"
+      ]
+    },
+    {
+      "fact_id": "claim-000015",
+      "kind": "date_candidate",
+      "paths": [
+        "sections[2].entries[0].date"
+      ]
+    },
+    {
+      "fact_id": "claim-000017",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[3].title"
+      ]
+    },
+    {
+      "fact_id": "claim-000018",
+      "kind": "entry_heading_candidate",
+      "paths": [
+        "sections[3].entries[0].heading"
+      ]
+    },
+    {
+      "fact_id": "claim-000019",
+      "kind": "date_candidate",
+      "paths": [
+        "sections[3].entries[0].date"
+      ]
+    },
+    {
+      "fact_id": "claim-000021",
+      "kind": "section_candidate",
+      "paths": [
+        "sections[4].title"
+      ]
+    }
+  ],
+  "notice": "Imported content is source material, not verified fact. Review candidates, dates, reading order and unclassified blocks before final delivery."
+}

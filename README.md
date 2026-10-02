@@ -14,11 +14,12 @@ git clone git@github.com:alexixu/creata-resume-skill.git ~/.codex/skills/creata-
 
 > $creata-resume-skill 我想投产品经理，没有写好简历。请和我一起梳理经历，先从最重要的问题问起，最后做成一页中文 PDF。
 
-也可以贴旧简历和 JD，要求局部改写、转行定位、英文版或完整美化。不用预先填写长问卷；每轮都会形成实际文稿。
+也可以提供旧 PDF、Word、图片或文本和 JD：先整理完整草稿，再追问关键事实、改写成果、形成经历故事与求职方向。不用预先填写长问卷；每轮都会形成实际文稿。
 
 ## 能做什么
 
 - 10 种职业/阶段模板：软件、数据算法、产品、设计、市场运营、销售客户成功、财务审计、项目职能、应届实习、转行。
+- [旧简历导入](references/importing.md)：保留页码/段落来源和未归类内容，支持本地 OCR；旧稿中的声明先待复核，不自动确认。
 - 真实经历账本、岗位要求映射、成果改写；没有数据也能表达交付价值，不编造成绩。
 - 六维评价：目标匹配 25、证据可信度 25、成果价值 20、结构 10、表达 10、排版提取 10。每项说明依据；未评项不冒充总分。
 - 两种版式：保留图标的 `classic` 和去装饰、顺序文本的 `plain`。生成 JSON、Markdown、TXT、LaTeX，以及有依赖时的 PDF。
@@ -32,6 +33,8 @@ Python 3.9+；PDF 需要 `tectonic` 和 Poppler。在 macOS 可用 `brew install
 
 ```bash
 python3 scripts/resume.py roles
+python3 scripts/import_resume.py /path/to/old-resume.pdf --out /tmp/my-resume/imported
+# 阅读来源、resume.md 与 review.md，在聊天中复核事实和完善正文。
 python3 scripts/resume.py init --role design --language zh --output /tmp/my-resume/profile.json
 # 在聊天中补齐并确认 profile.json 后：
 python3 scripts/resume.py render /tmp/my-resume/profile.json --out /tmp/my-resume/v1 --theme classic --pdf
@@ -42,6 +45,8 @@ python3 scripts/resume.py check /tmp/my-resume/v1
 ```
 
 默认一页 A4，未确认内容只能用 `--draft` 输出草稿。PDF 生成后还需要查看渲染图及文本顺序。[数据合约和完整步骤](references/delivery.md)
+
+文本型 PDF 提取需要 Poppler；扫描 PDF/图片需 macOS Swift/Vision 或已安装的 Tesseract。Word DOCX 和常见文本格式由标准库解析；旧 DOC/RTF 使用 macOS `textutil`。识别结果与原稿布局都需要复核，工具不上传文件。
 
 ## 项目文件
 
@@ -54,6 +59,7 @@ python3 scripts/resume.py check /tmp/my-resume/v1
 | [中文示例 PDF](dist/examples/zh-classic.pdf) / [英文示例 PDF](dist/examples/en-plain.pdf) | 已检查的 classic 与 plain 版式 |
 | [验收记录](docs/verification.md) | 已完成的构建、测试、视觉检查及边界 |
 | `scripts/resume.py` | 初始化、文本输出、LaTeX/PDF 构建与基础 QA |
+| `scripts/import_resume.py` | 旧文件提取、候选归类、来源账本和改进追问起点 |
 | `resume.tex` / `resume-zh.tex` / `resume.cls` | 保留的原始中英文模板和共享样式 |
 
 原始模板仍用 `make -B` 构建到 `dist/resume-en.pdf` 与 `dist/resume-zh.pdf`。运行 `python3 -m unittest discover -s tests -v` 检查工具。第三方字体与图标保留上游许可；个人简历放在公共仓库之外，不自动投递或上传。

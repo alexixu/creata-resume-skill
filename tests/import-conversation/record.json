@@ -1,0 +1,854 @@
+{
+  "schema_version": 1,
+  "id": "old-pdf-import",
+  "status": "completed_draft",
+  "execution": {
+    "mode": "same_model_directed_simulation",
+    "fictional": true,
+    "real_jobseeker": false,
+    "independent_review": false,
+    "blind": false,
+    "user_role": "parent agent provides one actual fictional user turn at a time",
+    "assistant_role": "skill_trial agent reads the real PDF through the implementation and responds before later inputs",
+    "source_pdf_read": true,
+    "source_pages_viewed": [
+      1
+    ],
+    "final_pdf_generated": false,
+    "private_paths_redacted": true,
+    "final_pdf_review": "NOT_RUN in this recorded conversation; later rendering QA must be a separately timestamped observation, not a rewrite of turn history."
+  },
+  "input": {
+    "fixture": "fictional-old-resume.pdf",
+    "sha256": "eddc441d34dfa5d547a984ff9c1f1cddf170045b9382b80c4f6138d4ecbd0fcc",
+    "pages": 1,
+    "a4": true,
+    "origin": "Fictional PDF created by the parent agent; the respondent did not read its generating profile."
+  },
+  "attempts": [
+    {
+      "order": 1,
+      "result": "failed",
+      "error": "resume_extract.py is required for resume import",
+      "note": "No successful import was claimed."
+    },
+    {
+      "order": 2,
+      "result": "draft_needs_review",
+      "snapshot": "automatic-before-layout-fix",
+      "facts": 22,
+      "remaining_blocks": 16,
+      "note": "Actual automatic output before narrowing the layout warning condition."
+    },
+    {
+      "order": 3,
+      "result": "draft_needs_review",
+      "snapshot": "automatic-round1",
+      "facts": 22,
+      "remaining_blocks": 1,
+      "note": "Reran the same original PDF to a new directory after the fix; earlier outputs remain preserved."
+    }
+  ],
+  "reproduction": "python3 scripts/import_resume.py tests/import-conversation/fictional-old-resume.pdf --out \"$CASE_OUTPUT/import-round1\"",
+  "turns": [
+    {
+      "number": 1,
+      "user": "这是我以前的简历 PDF。我不知道现在适合投产品运营、数据分析还是产品经理。请先帮我解析整理成完整简历，指出最该改的地方，问我关键问题，并准备能讲的经历故事和方向。",
+      "assistant": "已读完并对照这份 1 页 PDF，下面先给完整整理稿。它仍是“旧稿未复核（source_only）”：读取成功只证明原文件写了这些内容，不等于本轮已经确认事实。工具最初未能归类多数内容；修正后的实际导入已恢复工作、项目、教育和技能，我再按原页面把页首职位放回旧稿定位。\n\n完整整理稿\n林澄\nfictional-lin@example.invalid\n旧稿定位：产品运营助理\n\n工作经历\n示例协作公司｜产品运营助理｜2022.07—2025.06\n- 旧稿原文待核实：主导门店报表标准化，覆盖 3 家门店，效率提升 30%。\n- 使用 Excel 整理每周销售报表，制定字段说明和交接模板。\n\n示例工具公司｜客服实习生｜2021.07—2022.06\n- 参与整理用户反馈和产品需求，负责用户沟通。\n- 将重复的表单问题归类，协助产品经理整理验收用例。\n\n项目经历\n表单反馈汇总｜项目参与者｜2024.01—2024.04\n- 汇总客服记录，将填写错误和状态查询问题分组，提交给产品经理。\n\n教育背景\n示例大学｜信息管理学士｜2017.09—2021.06\n- 信息管理、统计学、数据整理课程。\n\n专业技能\n- Excel：数据透视表、常用公式；SQL：基础查询。\n以上是旧稿列示内容，尚未复核具体熟练程度或实践。\n\n最值得先改的三处\n1. 先核实“主导、3 家门店、效率提升 30%”：目前缺个人归属和指标口径，不能因它写在旧简历里就保留为已确认成果。\n2. 把职责写成具体交付：报表的字段说明、交接模板，以及反馈分类、验收协作，比“负责沟通/整理需求”更容易说明你做了什么；仍需补实际采用情况。\n3. 为不同方向选择重点：运营可侧重使用者与交付，数据可侧重整理方法，产品方向可侧重反馈如何进入需求。SQL 熟练度和产品决策责任目前都不能只凭旧稿推定。\n\n一段可先用的改写（仍据旧稿，待你复核）\n使用 Excel 整理每周销售报表，编写字段说明与交接模板。\n这句先不依赖“主导、3 家、30%”，不替你编补收益。\n\n两段经历故事草稿（都仍是旧稿素材）\n报表整理：在示例协作公司担任产品运营助理期间，我使用 Excel 整理每周销售报表，并编写字段说明与交接模板。这段经历可以先围绕报表整理与交接讲清动作；我在方案中的具体职责、实际使用范围和效果口径仍需补充。\n表单反馈：在表单反馈汇总项目中，我汇总客服记录，把填写错误和状态查询问题分类后提交给产品经理。目前能讲清的是反馈分类和提交这两步；后续有没有被采用、形成什么改动，旧稿没有说明。\n\n三个初步方向\n- 产品运营：已有报表交付、用户沟通与反馈整理素材；与旧稿任务重合较多，但实际采用和反馈闭环仍要确认，也要看你是否愿意继续做。\n- 数据分析：可以先突出 Excel 报表整理；SQL 实践、分析结论及其应用还缺证据。仅凭技能清单不能认定具备独立分析能力。\n- 产品经理：用户反馈、需求和验收协作可以作为转向素材；目前还缺个人的问题定义、优先级取舍与效果验证，不能改写成主导产品决策。\n这只是基于现有经历的探索，不涉及市场需求、薪资或录用预测。\n\n本轮只问三个关键问题：\n1. 报表项目中你本人具体负责什么，“3 家门店”和“提升 30%”有没有能确认的采用或统计依据？\n2. 表单反馈提交后，有哪些实际采用或后续变化是你知道的？不知道也可以。\n3. 这三个方向里，你更愿意继续做哪类日常工作，哪些工作不想再做？\n\n所有内容可定位到 PDF 第 1 页；账本保留了原文段落和行位置。旧稿截至 2025.06 后的经历未提供，不猜补，也不据此判定空窗。",
+      "questions": [
+        "报表项目中你本人具体负责什么，“3 家门店”和“提升 30%”有没有能确认的采用或统计依据？",
+        "表单反馈提交后，有哪些实际采用或后续变化是你知道的？不知道也可以。",
+        "这三个方向里，你更愿意继续做哪类日常工作，哪些工作不想再做？"
+      ],
+      "organized_text": "林澄\nfictional-lin@example.invalid\n旧稿定位：产品运营助理\n\n工作经历\n示例协作公司｜产品运营助理｜2022.07—2025.06\n- 旧稿原文待核实：主导门店报表标准化，覆盖 3 家门店，效率提升 30%。\n- 使用 Excel 整理每周销售报表，制定字段说明和交接模板。\n\n示例工具公司｜客服实习生｜2021.07—2022.06\n- 参与整理用户反馈和产品需求，负责用户沟通。\n- 将重复的表单问题归类，协助产品经理整理验收用例。\n\n项目经历\n表单反馈汇总｜项目参与者｜2024.01—2024.04\n- 汇总客服记录，将填写错误和状态查询问题分组，提交给产品经理。\n\n教育背景\n示例大学｜信息管理学士｜2017.09—2021.06\n- 信息管理、统计学、数据整理课程。\n\n专业技能\n- Excel：数据透视表、常用公式；SQL：基础查询。\n以上是旧稿列示内容，尚未复核具体熟练程度或实践。",
+      "concrete_rewrite": {
+        "text": "使用 Excel 整理每周销售报表，编写字段说明与交接模板。",
+        "fact_ids": [
+          "claim-000008"
+        ],
+        "status": "source_only"
+      },
+      "stories": [
+        {
+          "id": "story-report-v1",
+          "text": "在示例协作公司担任产品运营助理期间，我使用 Excel 整理每周销售报表，并编写字段说明与交接模板。这段经历可以先围绕报表整理与交接讲清动作；我在方案中的具体职责、实际使用范围和效果口径仍需补充。",
+          "fact_ids": [
+            "claim-000005",
+            "claim-000006",
+            "claim-000008"
+          ],
+          "status": "source_only",
+          "missing": [
+            "个人职责和方案决策边界",
+            "实际采用范围",
+            "效率提升的口径或其他已知结果"
+          ]
+        },
+        {
+          "id": "story-feedback-v1",
+          "text": "在表单反馈汇总项目中，我汇总客服记录，把填写错误和状态查询问题分类后提交给产品经理。目前能讲清的是反馈分类和提交这两步；后续有没有被采用、形成什么改动，旧稿没有说明。",
+          "fact_ids": [
+            "claim-000014",
+            "claim-000015",
+            "claim-000016"
+          ],
+          "status": "source_only",
+          "missing": [
+            "问题的具体例子",
+            "反馈是否被采用及个人后续参与",
+            "结果未知时可保留的交付证据"
+          ]
+        }
+      ],
+      "directions": [
+        {
+          "id": "product-ops",
+          "label": "产品运营",
+          "fact_ids": [
+            "claim-000008",
+            "claim-000011",
+            "claim-000012",
+            "claim-000016"
+          ],
+          "basis": "报表交付、用户沟通、反馈整理和验收协作。",
+          "gap": "实际采用与反馈闭环仍需确认；未取得具体JD。",
+          "tradeoff": "与旧稿任务重合较多，可先沿用已有材料；还要确认你是否愿意继续做这些日常工作。"
+        },
+        {
+          "id": "data",
+          "label": "数据分析（先看报表/分析助理类职责）",
+          "fact_ids": [
+            "claim-000008",
+            "claim-000020",
+            "claim-000022"
+          ],
+          "basis": "Excel报表整理及旧稿列示的数据课程、SQL基础。",
+          "gap": "SQL实践、分析过程和结论如何使用尚未确认。",
+          "tradeoff": "可以突出数据整理，但单有报表和技能清单还不能证明独立分析能力，需真实作品或经历支撑。"
+        },
+        {
+          "id": "product",
+          "label": "产品经理（可先探索助理/协作职责）",
+          "fact_ids": [
+            "claim-000011",
+            "claim-000012",
+            "claim-000016"
+          ],
+          "basis": "用户反馈、需求整理和验收协作。",
+          "gap": "问题定义、优先级取舍与效果验证的个人决策证据不足。",
+          "tradeoff": "可用真实协作经历搭桥；不能把参与整理改写为主导产品决策或已经担任产品经理。"
+        }
+      ],
+      "progress": "Actual PDF extraction and visual comparison; complete source-only organized draft, three improvements, concrete rewrite, two story drafts, three exploratory directions and three questions."
+    },
+    {
+      "number": 2,
+      "user": "报表不是我主导，字段是经理定的。我负责把不同格式的报表整理成 Excel 模板，加了漏填和格式检查，写字段说明。其实只有 2 家门店，每周用了大约三个月；30% 没有统计过，不知道多少提升，删掉。表单反馈我是从客服记录里把重复的填写错误、状态查询归类，交给产品经理，还参与整理验收用例；是否上线和后续效果我不知道。我喜欢找用户问题、把信息整理清楚，再做能用的小工具，不想继续整天催报表。SQL 只是在课上学过基础查询，没有工作项目。请按这些继续完善，不要再追问我30%的口径。",
+      "assistant": "已删除“主导、3 家、提升 30%”的当前表述，改为你确认的参与范围、2 家门店和约三个月的每周使用；不再追问提升比例。SQL 改为课程学习，不写成工作能力。\n\n当前完整简历草稿\n林澄\nfictional-lin@example.invalid\n旧稿职位：产品运营助理；最终求职定位待选择\n\n个人概览（本轮确认内容）\n有报表模板整理、漏填与格式检查、客服反馈分类及验收协作经历，希望继续围绕用户问题、信息整理和实用工具开展工作。\n\n工作经历\n示例协作公司｜产品运营助理｜2022.07—2025.06\n- 将不同格式的门店报表整理为 Excel 模板，加入漏填和格式检查，并编写字段说明。\n- 字段由经理确定；模板供 2 家门店每周使用，持续约三个月。\n\n示例工具公司｜客服实习生｜2021.07—2022.06\n- 旧稿待复核：参与整理用户反馈和产品需求，负责用户沟通。\n- 旧稿待复核：将重复表单问题归类，协助产品经理整理验收用例。\n\n项目经历\n表单反馈汇总｜项目参与者｜2024.01—2024.04\n- 从客服记录中归类重复出现的填写错误和状态查询问题，提交给产品经理。\n- 参与整理验收用例；没有掌握后续上线和效果。\n\n教育背景\n示例大学｜信息管理学士｜2017.09—2021.06\n- 旧稿列示：信息管理、统计学、数据整理课程。\n\n专业技能\n- 本轮确认：Excel 模板整理、漏填与格式检查、字段说明。\n- 本轮确认：SQL 仅学过课程基础查询，没有工作项目。\n- 旧稿另列数据透视表、常用公式，尚未复核，不作为已确认能力。\n\n来源说明：姓名、联系方式、公司、正式职位、各段时间、教育和客服实习具体职责仍来自旧稿；本轮没有把这些一并设为已确认。\n\n本轮关键改写\n“将不同格式的门店报表整理为 Excel 模板，加入漏填和格式检查，并编写字段说明；模板供 2 家门店每周使用约三个月，字段由经理确定。”\n这段用具体交付、采用范围和个人职责作证据，没有增添收益。\n\n两段可讲的故事\n报表模板：经理确定报表字段后，我把不同格式的报表整理成 Excel 模板，加入漏填与格式检查，并写出字段说明。模板供两家门店每周使用，持续约三个月。我负责的是模板整理和检查说明，没有主导字段方案，也没有测量效率提升比例。\n用户反馈：我从客服记录中整理反复出现的填写错误和状态查询问题，将它们分类后交给产品经理，并参与整理验收用例。目前能确认的是反馈分类、提交及验收协作；我没有掌握后续是否上线和效果，因此不把这段经历讲成功能上线或业务增长。\n两段故事的行动及归属已按本轮说明更新；公司/任职日期和项目日期仍只来自旧稿，不把故事重新写得更完整就当成新事实。\n\n方向暂时这样排：\n1. 产品运营，优先看偏用户反馈、工具或流程改进的职责。已确认的反馈分类、验收协作、模板交付能作为材料，也贴近你“找问题、整理清楚、做可用工具”的偏好；但要看具体 JD，避免主要工作仍是催报表。\n2. 产品助理或产品经理转向。反馈分类和验收协作可以搭桥，但问题定义、优先级和方案验证的个人决策证据仍缺，当前不能写成已经主导产品。\n3. 数据分析暂作次要探索。Excel 整理有实绩，SQL 只有课程基础，尚无工作分析案例；如果岗位侧重催收报表，也可能与你的偏好不合。\n这是基于已知经历和偏好的选择依据，不是市场或录用判断。没有上线和效果信息也能继续，故事就停在已确认交付处。\n\n只再补两个会改变成稿的问题：\n1. 你最能讲清的一项具体例子是什么：一种漏填/格式问题，或一条反复出现的用户问题？\n2. 下一版你想优先突出偏用户反馈与工具改进的产品运营，还是产品助理方向？",
+      "questions": [
+        "你最能讲清的一项具体例子是什么：一种漏填/格式问题，或一条反复出现的用户问题？",
+        "下一版你想优先突出偏用户反馈与工具改进的产品运营，还是产品助理方向？"
+      ],
+      "organized_text": "林澄\nfictional-lin@example.invalid\n旧稿职位：产品运营助理；最终求职定位待选择\n\n个人概览（本轮确认内容）\n有报表模板整理、漏填与格式检查、客服反馈分类及验收协作经历，希望继续围绕用户问题、信息整理和实用工具开展工作。\n\n工作经历\n示例协作公司｜产品运营助理｜2022.07—2025.06\n- 将不同格式的门店报表整理为 Excel 模板，加入漏填和格式检查，并编写字段说明。\n- 字段由经理确定；模板供 2 家门店每周使用，持续约三个月。\n\n示例工具公司｜客服实习生｜2021.07—2022.06\n- 旧稿待复核：参与整理用户反馈和产品需求，负责用户沟通。\n- 旧稿待复核：将重复表单问题归类，协助产品经理整理验收用例。\n\n项目经历\n表单反馈汇总｜项目参与者｜2024.01—2024.04\n- 从客服记录中归类重复出现的填写错误和状态查询问题，提交给产品经理。\n- 参与整理验收用例；没有掌握后续上线和效果。\n\n教育背景\n示例大学｜信息管理学士｜2017.09—2021.06\n- 旧稿列示：信息管理、统计学、数据整理课程。\n\n专业技能\n- 本轮确认：Excel 模板整理、漏填与格式检查、字段说明。\n- 本轮确认：SQL 仅学过课程基础查询，没有工作项目。\n- 旧稿另列数据透视表、常用公式，尚未复核，不作为已确认能力。\n\n来源说明：姓名、联系方式、公司、正式职位、各段时间、教育和客服实习具体职责仍来自旧稿；本轮没有把这些一并设为已确认。",
+      "stories": [
+        {
+          "id": "story-report-v2",
+          "text": "经理确定报表字段后，我把不同格式的报表整理成 Excel 模板，加入漏填与格式检查，并写出字段说明。模板供两家门店每周使用，持续约三个月。我负责的是模板整理和检查说明，没有主导字段方案，也没有测量效率提升比例。",
+          "fact_ids": [
+            "user-001",
+            "user-002",
+            "user-003"
+          ],
+          "status": "user_confirmed",
+          "missing": [
+            "可讲述的一项具体漏填或格式问题例子"
+          ]
+        },
+        {
+          "id": "story-feedback-v2",
+          "text": "我从客服记录中整理反复出现的填写错误和状态查询问题，将它们分类后交给产品经理，并参与整理验收用例。目前能确认的是反馈分类、提交及验收协作；我没有掌握后续是否上线和效果，因此不把这段经历讲成功能上线或业务增长。",
+          "fact_ids": [
+            "user-004"
+          ],
+          "status": "user_confirmed",
+          "missing": [
+            "一个实际问题及其分类理由，若用户愿意提供"
+          ]
+        }
+      ],
+      "directions": [
+        {
+          "id": "product-ops",
+          "label": "产品运营，优先探索用户反馈与工具/流程改进任务",
+          "fact_ids": [
+            "user-001",
+            "user-004",
+            "user-005"
+          ],
+          "basis": "已确认反馈分类、验收协作、报表模板整理；偏好找用户问题和制作可用工具。",
+          "gap": "还缺反馈被采用或工作如何闭环的证据。",
+          "tradeoff": "可沿用现有经历，也较贴近所述偏好；需逐份JD区分用户问题/工具改进与大量催报表的实际职责。"
+        },
+        {
+          "id": "product",
+          "label": "产品助理或产品经理转向",
+          "fact_ids": [
+            "user-004",
+            "user-005"
+          ],
+          "basis": "有用户问题分类和验收协作，且愿意做用户问题相关工作。",
+          "gap": "个人问题定义、优先级决定、方案选择和验证仍缺。",
+          "tradeoff": "方向符合部分偏好，但当前证据支持协作参与；不能把参与包装成独立产品决策。"
+        },
+        {
+          "id": "data",
+          "label": "数据分析方向暂作次要探索",
+          "fact_ids": [
+            "user-001",
+            "user-002",
+            "user-005",
+            "user-006"
+          ],
+          "basis": "有实际Excel模板和检查规则交付。",
+          "gap": "SQL仅课程学习，没有工作查询、独立分析结论或应用案例。",
+          "tradeoff": "可用数据整理经历起步，但需要更多真实分析证据；若岗位主要是反复催收报表，可能与已表达偏好不合。"
+        }
+      ],
+      "progress": "Corrected contribution/count/unsupported gain and SQL scope; updated full draft, source states, stories and direction rationale without confirming untouched identity, dates or education."
+    },
+    {
+      "number": 3,
+      "user": "具体例子是报表经常漏填门店编号，日期格式也不统一。我在 Excel 模板里标出漏填项，并统一日期填写格式，检查方式就是先做一份漏填和格式不一致的样表来试。下一版优先写偏用户反馈与工具改进的产品运营。没有更多上线/业务效果信息，不要补造。姓名、公司、职位、时间和教育先沿用旧稿但标清尚待复核，别把它们当我这轮全部确认。请给完整当前简历、两段我能讲的故事，以及这三个方向的主次和缺口，直接完成这版草稿。",
+      "assistant": "这版按“偏用户反馈与工具改进的产品运营”完成草稿，不再追问。具体检查方法已补入；身份、任职时间和教育仍按你的要求标为旧稿待复核。\n\n完整当前简历（草稿）\n\n林澄\nfictional-lin@example.invalid\n求职方向：产品运营｜用户反馈与工具改进\n\n个人概览\n有客服反馈分类、验收协作及 Excel 模板整理经历，希望围绕用户问题、信息整理和实用工具开展工作。\n\n工作经历\n示例协作公司｜产品运营助理｜2022.07—2025.06\n- 按经理确定的字段，将不同格式的门店报表整理为 Excel 模板，编写字段说明。\n- 针对门店编号漏填和日期格式不统一的问题，在模板中标出漏填项并统一日期填写格式。\n- 制作包含漏填项和不一致日期格式的样表，检查模板的提示与填写格式。\n- 模板供 2 家门店每周使用，持续约三个月。\n\n示例工具公司｜客服实习生｜2021.07—2022.06\n- 旧稿待复核：参与整理用户反馈和产品需求，负责用户沟通；协助整理重复表单问题与验收用例。\n\n项目经历\n表单反馈汇总｜项目参与者｜2024.01—2024.04\n- 从客服记录中归类重复出现的填写错误和状态查询问题，提交给产品经理。\n- 参与整理验收用例。\n\n教育背景\n示例大学｜信息管理学士｜2017.09—2021.06\n- 旧稿课程：信息管理、统计学、数据整理；尚待复核。\n\n专业技能\n- Excel：模板整理、漏填与格式检查、字段说明；使用异常样表检查模板。\n- SQL：课程基础查询，无工作项目。\n\n草稿来源说明\n姓名、联系信息、公司、正式职位、各段时间、教育及客服实习具体职责沿用旧稿，尚待复核；其余行动与使用范围依据本轮补充。\n\n两段可讲的故事\n\n1. 报表模板与填写检查\n经理确定报表字段后，我负责把不同格式的门店报表整理为 Excel 模板并写字段说明。原报表经常漏填门店编号，日期格式也不统一，我就在模板中标出漏填项、统一日期填写格式，并做一份故意漏填和日期格式不一致的样表来检查。模板供两家门店每周使用，持续约三个月。这段经历能说明我把具体填写问题整理成可用工具，并做了样表检查；没有统计效率提升幅度。\n\n2. 客服反馈归类与验收协作\n我从客服记录中整理重复出现的填写错误和状态查询问题，把它们分类后交给产品经理，并参与整理验收用例。我的贡献是问题分类、信息交接和验收协作。目前不知道后续是否上线，也没有业务效果信息，所以故事讲到这些已完成的工作为止，不延伸为我决定了产品方案或推动了上线。\n\n两个故事只使用你已确认的行动、检查方法和采用范围；公司与日期沿用旧稿，尚待复核。故事中不补用户访谈、产品决策、上线结果或业务收益。\n\n三个方向的主次与缺口\n\n1. 主方向：偏用户反馈与工具改进的产品运营。已有反馈分类、验收协作、Excel 模板和样表检查经历，与你“找问题、整理信息、做能用的小工具”的偏好一致。本版据此安排概览和要点。缺口是反馈后续采用与效果；看具体 JD 时，也要区分工具/用户问题工作与大量催报表的职责。\n2. 次方向：产品助理，产品经理作为后续探索。改投时重点讲表单反馈的分类、交接与验收协作，报表故事补充检查方法。尚缺需求优先级、方案决策、跨方推进或上线闭环的个人证据；异常样表检查不能被写成完整产品验证，也不把正式职位改成产品经理。\n3. 第三方向：数据分析，暂作探索。可突出格式整理、漏填检查和数据质量意识；但 SQL 仅课程基础，没有工作查询、独立分析结论及其应用案例。若进一步转向，需要实际分析作品或项目；如果岗位主要是催收报表，也可能与你的偏好不合。\n\n这些是基于当前经历与偏好的选材判断，尚未对照具体 JD，不是市场需求或录用概率判断。本版不打无依据的匹配分。\n\n来源与剩余边界\n\n- 用户已确认：个人职责与经理权限、2 家门店每周约三个月、门店编号/日期问题、异常样表检查、反馈分类与验收协作、SQL 仅课程学习及工作偏好。\n- 仍 source_only：姓名、联系信息、公司、正式职位、各段时间、教育、客服实习具体职责。沿用不代表本轮确认。\n- 已撤回：“主导、3 家门店、提升 30%”仅留在历史来源中，不进入当前简历或故事。旧稿的数据透视表、常用公式及交接模板尚未复核，本版不作为已确认技能或交付。\n- 未知的上线与业务效果保持未知；没有补造数字或结果。当前文件是内容草稿，尚未生成或审核本版 PDF。",
+      "questions": [],
+      "organized_text": "林澄\nfictional-lin@example.invalid\n求职方向：产品运营｜用户反馈与工具改进\n\n个人概览\n有客服反馈分类、验收协作及 Excel 模板整理经历，希望围绕用户问题、信息整理和实用工具开展工作。\n\n工作经历\n示例协作公司｜产品运营助理｜2022.07—2025.06\n- 按经理确定的字段，将不同格式的门店报表整理为 Excel 模板，编写字段说明。\n- 针对门店编号漏填和日期格式不统一的问题，在模板中标出漏填项并统一日期填写格式。\n- 制作包含漏填项和不一致日期格式的样表，检查模板的提示与填写格式。\n- 模板供 2 家门店每周使用，持续约三个月。\n\n示例工具公司｜客服实习生｜2021.07—2022.06\n- 旧稿待复核：参与整理用户反馈和产品需求，负责用户沟通；协助整理重复表单问题与验收用例。\n\n项目经历\n表单反馈汇总｜项目参与者｜2024.01—2024.04\n- 从客服记录中归类重复出现的填写错误和状态查询问题，提交给产品经理。\n- 参与整理验收用例。\n\n教育背景\n示例大学｜信息管理学士｜2017.09—2021.06\n- 旧稿课程：信息管理、统计学、数据整理；尚待复核。\n\n专业技能\n- Excel：模板整理、漏填与格式检查、字段说明；使用异常样表检查模板。\n- SQL：课程基础查询，无工作项目。\n\n草稿来源说明\n姓名、联系信息、公司、正式职位、各段时间、教育及客服实习具体职责沿用旧稿，尚待复核；其余行动与使用范围依据本轮补充。",
+      "stories": [
+        {
+          "id": "story-report-v3",
+          "text": "经理确定报表字段后，我负责把不同格式的门店报表整理为 Excel 模板并写字段说明。原报表经常漏填门店编号，日期格式也不统一，我就在模板中标出漏填项、统一日期填写格式，并做一份故意漏填和日期格式不一致的样表来检查。模板供两家门店每周使用，持续约三个月。这段经历能说明我把具体填写问题整理成可用工具，并做了样表检查；没有统计效率提升幅度。",
+          "fact_ids": [
+            "user-001",
+            "user-002",
+            "user-003",
+            "user-007",
+            "user-008"
+          ],
+          "status": "user_confirmed",
+          "missing": [
+            "检查是否覆盖其他情况、量化业务效果未知；本版不补造，也不继续追问。"
+          ]
+        },
+        {
+          "id": "story-feedback-v3",
+          "text": "我从客服记录中整理重复出现的填写错误和状态查询问题，把它们分类后交给产品经理，并参与整理验收用例。我的贡献是问题分类、信息交接和验收协作。目前不知道后续是否上线，也没有业务效果信息，所以故事讲到这些已完成的工作为止，不延伸为我决定了产品方案或推动了上线。",
+          "fact_ids": [
+            "user-004",
+            "user-010"
+          ],
+          "status": "user_confirmed",
+          "missing": [
+            "没有可确认的上线或后续业务效果；本版保留边界，不阻塞交付。"
+          ]
+        }
+      ],
+      "directions": [
+        {
+          "id": "product-ops",
+          "priority": 1,
+          "label": "主方向：偏用户反馈与工具改进的产品运营",
+          "fact_ids": [
+            "user-001",
+            "user-002",
+            "user-004",
+            "user-005",
+            "user-007",
+            "user-008",
+            "user-009"
+          ],
+          "basis": "反馈分类、验收协作、模板整理和异常样表检查是可讲的任务；实际采用范围已有用户确认，且用户明确选择此方向。",
+          "emphasis": "将反馈分类、验收协作与工具检查放在概览和要点前部，保留正式职位与时间。",
+          "gap": "反馈被采用后的闭环、效果观察仍缺；不能声称主导产品或带来业务增长。",
+          "tradeoff": "可沿用当前真实任务并符合偏好，但岗位职责差异很大，读具体 JD 时需辨认是否仍以催报表为主。"
+        },
+        {
+          "id": "product",
+          "priority": 2,
+          "label": "次方向：产品助理；产品经理作为后续探索",
+          "fact_ids": [
+            "user-004",
+            "user-005",
+            "user-008",
+            "user-009"
+          ],
+          "basis": "反馈归类、验收协作及样表检查能展示问题整理和基础验证动作。",
+          "emphasis": "改投时优先讲表单反馈的分类与交接，报表故事作为检查方法的补充，而不是只更换目标标题。",
+          "gap": "尚无个人需求优先级、方案决策、跨方推进或上线闭环证据；样表检查不等同完整产品验证。",
+          "tradeoff": "贴近用户偏好，但现有证据支持协作参与；不能用产品经理头衔替代真实的产品运营助理职位。"
+        },
+        {
+          "id": "data",
+          "priority": 3,
+          "label": "第三方向：数据分析，暂作探索",
+          "fact_ids": [
+            "user-001",
+            "user-002",
+            "user-005",
+            "user-006",
+            "user-007",
+            "user-008"
+          ],
+          "basis": "已有数据格式整理、漏填检查和 Excel 工具实践；SQL 仅课程基础。",
+          "emphasis": "如改投，优先保留数据质量问题、规范方法及样表检查，弱化需求协作描述。",
+          "gap": "没有工作 SQL 项目、独立分析结论及结论应用证据。",
+          "tradeoff": "可以从已有数据整理能力继续学习，但与完整分析岗位要求的距离需要具体 JD 判断；若工作主要是催报表，会与本人偏好冲突。"
+        }
+      ],
+      "progress": "Selected product operations; added specific missing store-ID/date-format issue and actual sample-based check; preserved source-only identity/timeline/education and all unknown outcomes; completed current draft without further questions."
+    }
+  ],
+  "facts": [
+    {
+      "id": "claim-000001",
+      "text": "林澄",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000001",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 1,
+          "line_start": 1,
+          "line_end": 3,
+          "line_in_block": 1
+        }
+      }
+    },
+    {
+      "id": "claim-000002",
+      "text": "fictional-lin@example.invalid",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000002",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 1,
+          "line_start": 1,
+          "line_end": 3,
+          "line_in_block": 2
+        }
+      }
+    },
+    {
+      "id": "claim-000003",
+      "text": "产品运营助理",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000003",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 1,
+          "line_start": 1,
+          "line_end": 3,
+          "line_in_block": 3
+        }
+      }
+    },
+    {
+      "id": "claim-000004",
+      "text": "工作经历",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000004",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 1
+        }
+      }
+    },
+    {
+      "id": "claim-000005",
+      "text": "示例协作公司 / 产品运营助理",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000005",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 2
+        }
+      }
+    },
+    {
+      "id": "claim-000006",
+      "text": "2022.07 - 2025.06",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000006",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 3
+        }
+      }
+    },
+    {
+      "id": "claim-000007",
+      "text": "• 主导门店报表标准化，覆盖 3 家门店，效率提升 30%。",
+      "status": "superseded",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000007",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 4
+        }
+      },
+      "superseded_by": [
+        "user-001",
+        "user-002",
+        "user-003"
+      ]
+    },
+    {
+      "id": "claim-000008",
+      "text": "• 使用 Excel 整理每周销售报表，制定字段说明和交接模板。",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000008",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 5
+        }
+      },
+      "review_note": "当前个人工作改引user-001；旧稿交接模板未确认。"
+    },
+    {
+      "id": "claim-000009",
+      "text": "示例工具公司 / 客服实习生",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000009",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 6
+        }
+      }
+    },
+    {
+      "id": "claim-000010",
+      "text": "2021.07 - 2022.06",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000010",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 7
+        }
+      }
+    },
+    {
+      "id": "claim-000011",
+      "text": "• 参与整理用户反馈和产品需求，负责用户沟通。",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000011",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 8
+        }
+      }
+    },
+    {
+      "id": "claim-000012",
+      "text": "• 将重复的表单问题归类，协助产品经理整理验收用例。",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000012",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 9
+        }
+      }
+    },
+    {
+      "id": "claim-000013",
+      "text": "项目经历",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000013",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 10
+        }
+      }
+    },
+    {
+      "id": "claim-000014",
+      "text": "表单反馈汇总 / 项目参与者",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000014",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 11
+        }
+      }
+    },
+    {
+      "id": "claim-000015",
+      "text": "2024.01 - 2024.04",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000015",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 12
+        }
+      }
+    },
+    {
+      "id": "claim-000016",
+      "text": "• 汇总客服记录，将填写错误和状态查询问题分组，提交给产品经理。",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000016",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 13
+        }
+      }
+    },
+    {
+      "id": "claim-000017",
+      "text": "教育背景",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000017",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 14
+        }
+      }
+    },
+    {
+      "id": "claim-000018",
+      "text": "示例大学 / 信息管理学士",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000018",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 15
+        }
+      }
+    },
+    {
+      "id": "claim-000019",
+      "text": "2017.09 - 2021.06",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000019",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 16
+        }
+      }
+    },
+    {
+      "id": "claim-000020",
+      "text": "• 信息管理、统计学、数据整理课程。",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000020",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 17
+        }
+      }
+    },
+    {
+      "id": "claim-000021",
+      "text": "专业技能",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000021",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 18
+        }
+      }
+    },
+    {
+      "id": "claim-000022",
+      "text": "• Excel：数据透视表、常用公式；SQL：基础查询。",
+      "status": "source_only",
+      "source": {
+        "kind": "imported_pdf",
+        "artifact": "automatic-round1/evidence.json",
+        "fact_id": "claim-000022",
+        "locator": {
+          "source": "src-eddc441d34dfa5d5",
+          "page": 1,
+          "paragraph": 2,
+          "line_start": 5,
+          "line_end": 23,
+          "line_in_block": 19
+        }
+      },
+      "review_note": "SQL范围以user-006为准；透视表与常用公式仍未复核。不可把这条旧稿完整当成工作SQL能力。"
+    },
+    {
+      "id": "user-001",
+      "text": "本人不主导字段方案；经理定字段，本人整理Excel模板、加入漏填与格式检查并写字段说明",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 2,
+        "quote": "报表不是我主导，字段是经理定的。我负责把不同格式的报表整理成 Excel 模板，加了漏填和格式检查，写字段说明。"
+      },
+      "supersedes": [
+        "claim-000007"
+      ]
+    },
+    {
+      "id": "user-002",
+      "text": "实际两家门店，每周使用约三个月",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 2,
+        "quote": "其实只有 2 家门店，每周用了大约三个月"
+      },
+      "supersedes": [
+        "claim-000007"
+      ]
+    },
+    {
+      "id": "user-003",
+      "text": "没有统计30%或其他提升幅度，要求删除",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 2,
+        "quote": "30% 没有统计过，不知道多少提升，删掉。"
+      },
+      "supersedes": [
+        "claim-000007"
+      ]
+    },
+    {
+      "id": "user-004",
+      "text": "本人分类客服记录中的填写错误和状态查询，交给产品经理并参与验收用例；上线及后续效果未知",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 2,
+        "quote": "表单反馈我是从客服记录里把重复的填写错误、状态查询归类，交给产品经理，还参与整理验收用例；是否上线和后续效果我不知道。"
+      }
+    },
+    {
+      "id": "user-005",
+      "text": "喜欢找用户问题、整理信息、做可用小工具，不想整天催报表",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 2,
+        "quote": "我喜欢找用户问题、把信息整理清楚，再做能用的小工具，不想继续整天催报表。"
+      }
+    },
+    {
+      "id": "user-006",
+      "text": "SQL仅课程基础查询，无工作项目",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 2,
+        "quote": "SQL 只是在课上学过基础查询，没有工作项目。"
+      }
+    },
+    {
+      "id": "user-007",
+      "text": "原报表经常漏填门店编号且日期格式不统一；本人在模板标漏填项并统一日期填写格式",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 3,
+        "quote": "具体例子是报表经常漏填门店编号，日期格式也不统一。我在 Excel 模板里标出漏填项，并统一日期填写格式"
+      }
+    },
+    {
+      "id": "user-008",
+      "text": "本人制作漏填和格式不一致的样表，检查模板",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 3,
+        "quote": "检查方式就是先做一份漏填和格式不一致的样表来试。"
+      }
+    },
+    {
+      "id": "user-009",
+      "text": "当前选择偏用户反馈与工具改进的产品运营方向",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 3,
+        "quote": "下一版优先写偏用户反馈与工具改进的产品运营。"
+      }
+    },
+    {
+      "id": "user-010",
+      "text": "没有更多上线或业务效果信息，不得补造",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 3,
+        "quote": "没有更多上线/业务效果信息，不要补造。"
+      }
+    },
+    {
+      "id": "user-011",
+      "text": "沿用旧稿姓名、公司、职位、时间和教育，但仍待复核，不是本轮确认",
+      "status": "user_confirmed",
+      "source": {
+        "kind": "conversation",
+        "turn": 3,
+        "quote": "姓名、公司、职位、时间和教育先沿用旧稿但标清尚待复核，别把它们当我这轮全部确认。"
+      }
+    }
+  ],
+  "limitations": [
+    "同模型代理扮演虚构用户和助手，不是真人、独立评审或盲测。",
+    "自动输出与代理整理稿分开保留；没有把手工归类冒充自动能力。",
+    "读取及图像核对只确认原文内容和位置，不确认候选人经历真实性。",
+    "此时没有新简历PDF或招聘效果验证。",
+    "This run exercises one readable single-column PDF. Other supported formats, difficult layouts and OCR require their own extraction/visual checks; this conversation is not evidence that those paths were exercised."
+  ],
+  "completed_artifacts": {
+    "response": "round-3-response.md",
+    "resume": "current-resume.json",
+    "evidence": "current-evidence.json"
+  },
+  "observations": [
+    "Executed one real local fictional PDF through import CLI, then answered three parent-supplied user turns in sequence. Later user inputs were not prewritten by the respondent.",
+    "Automatic import originally left 16 blocks unclassified because a generic PDF warning was treated as layout ambiguity. A code correction outside this agent was rerun on the same PDF, leaving one top-title block; both actual snapshots remain.",
+    "The current structured resume and stories are agent-authored revisions based on extracted source and actual supplied answers. They are not represented as automatic import output.",
+    "Automatic review after layout fix also suggested customer-success/sales-support from a sales-report keyword; the actual response did not adopt that suggestion. Historical automatic output remains preserved.",
+    "Correction of personal contribution, count and unsupported percentage propagated to the current resume, both stories and all direction rationales. Original claim-000007 is superseded, not erased.",
+    "Source identity, dates, education, contact information and internship details remain source_only despite permission to carry them forward. Unreviewed pivot-table/formula/hand-over-template assertions were not promoted.",
+    "There is no full JD, final document review, hiring outcome, real-jobseeker study, independent model comparison or blind evaluation here. Structural/source consistency checks establish only those checked properties."
+  ]
+}
