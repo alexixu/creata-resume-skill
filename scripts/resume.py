@@ -263,7 +263,11 @@ def text_pattern(value):
             # This exception never joins ordinary multi-letter words.
             initials = all(len(token) == 1 and token.isupper() and latin(token)
                            for token in (left, right))
-            parts.append(r'\s*' if adjacent_cjk or initials else r'\s+')
+            # Poppler may omit a narrow gap beside an em dash. The dash itself
+            # stays literal, and ordinary Latin word spaces stay mandatory.
+            adjacent_em_dash = ((index and expected[index - 1] == '\u2014')
+                                or (index + 1 < len(expected) and expected[index + 1] == '\u2014'))
+            parts.append(r'\s*' if adjacent_cjk or initials or adjacent_em_dash else r'\s+')
         else:
             parts.append(re.escape(char))
     if latin(expected[-1]) or expected[-1].isdigit():

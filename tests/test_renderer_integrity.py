@@ -82,6 +82,24 @@ class TextCoverageTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertTrue(resume.text_is_present(expected, extracted))
 
+    def test_em_dash_gaps_may_vanish_without_losing_words_or_signs(self):
+        headline = 'Operations Support \u2014 Direction Draft'
+        for text in ('Operations Support \u2014Direction Draft',
+                     'Operations Support\u2014 Direction Draft',
+                     'Operations Support\u2014Direction Draft'):
+            with self.subTest(extracted=text):
+                self.assertTrue(resume.text_is_present(headline, text))
+        for text in ('Operations Support Direction Draft',
+                     'OperationsSupport\u2014Direction Draft',
+                     'Operations Support\u2014DirectionDraft'):
+            with self.subTest(extracted=text):
+                self.assertFalse(resume.text_is_present(headline, text))
+        self.assertFalse(resume.text_is_present('Reduced cost by -30%.', 'Reduced cost by 30%.'))
+        self.assertEqual(self.missing([headline, 'Direction Draft'],
+                                      'Operations Support\u2014Direction Draft'), [1])
+        self.assertEqual(self.missing([headline, headline],
+                                      'Operations Support\u2014Direction Draft'), [1])
+
 
 class OutputSafetyTests(unittest.TestCase):
     def test_generated_symlinks_are_refused_before_any_external_command(self):
@@ -127,6 +145,53 @@ class OutputSafetyTests(unittest.TestCase):
 
 @unittest.skipUnless(PDF_TOOLS, 'requires tectonic and Poppler')
 class RealIntegrityTests(unittest.TestCase):
+    def test_em_dash_headline_passes_both_themes_without_hiding_missing_fields(self):
+        headline = 'Process Operations / Product Operations Support \u2014 Direction Draft'
+        data = {'language': 'en', 'name': 'Fictional Candidate', 'headline': headline,
+                'facts_confirmed': True, 'contacts': ['sample@example.com'],
+                'sections': [{'id': 'skills', 'title': 'Skills', 'entries': [
+                    {'bullets': ['Reduced cost by -30%.', 'Direction Draft']}]}]}
+        with tempfile.TemporaryDirectory(prefix='resume-em-dash-') as tmp:
+            folder = Path(tmp)
+            source = folder / 'fictional.json'
+            source.write_text(json.dumps(data, ensure_ascii=False))
+            def cli(*args):
+                return subprocess.run([sys.executable, str(ROOT / 'scripts/resume.py'), *map(str, args)],
+                                      capture_output=True, text=True)
+            for theme in ('plain', 'classic'):
+                with self.subTest(theme=theme):
+                    out = folder / theme
+                    built = cli('render', source, '--out', out, '--theme', theme, '--pdf')
+                    self.assertEqual(built.returncode, 0, built.stderr)
+                    self.assertEqual(json.loads((out / 'qa.json').read_text())['missing_text_fields'], [])
+                    self.assertTrue(resume.text_is_present(headline, (out / 'resume-extracted.txt').read_text()))
+                    self.assertEqual(cli('check', out).returncode, 0)
+                    tex = out / 'resume.tex'
+                    original = tex.read_text()
+
+                    # The headline's embedded words cannot replace an omitted
+                    # independent field, even with optional dash spacing.
+                    private = original.replace('\\item Direction Draft\n', '')
+                    self.assertNotEqual(private, original)
+                    tex.write_text(private)
+                    rebuilt = cli('rebuild', out)
+                    self.assertEqual(rebuilt.returncode, 1, rebuilt.stdout)
+                    self.assertEqual(json.loads((out / 'qa.json').read_text())['missing_text_fields'],
+                                     ['sections[0].entries[0].bullets[1]'])
+                    self.assertEqual(cli('check', out).returncode, 1)
+                    self.assertEqual(tex.read_text(), private)
+
+                    # Optional whitespace must not make either the literal em
+                    # dash or a quantitative claim's negative sign optional.
+                    private = original.replace(headline, headline.replace(' \u2014 ', ' ')).replace('-30', '30')
+                    tex.write_text(private)
+                    rebuilt = cli('rebuild', out)
+                    self.assertEqual(rebuilt.returncode, 1, rebuilt.stdout)
+                    self.assertEqual(json.loads((out / 'qa.json').read_text())['missing_text_fields'],
+                                     ['headline', 'sections[0].entries[0].bullets[0]'])
+                    self.assertEqual(cli('check', out).returncode, 1)
+                    self.assertEqual(tex.read_text(), private)
+
     def test_cjk_spacing_priority_preserves_both_real_pdf_fields(self):
         data = {'language': 'zh', 'name': '虚构候选人', 'headline': '',
                 'facts_confirmed': True, 'contacts': ['sample@example.com'],

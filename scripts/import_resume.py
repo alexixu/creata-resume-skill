@@ -51,10 +51,10 @@ DATE_ATOM = (r'(?:(?:19|20)\d{2}(?:[./\-]\d{1,2}|年\d{1,2}月)?年?|'
              r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
              r'\.?\s+(?:19|20)\d{2})')
 DATE_SPAN = re.compile(DATE_ATOM + r'\s*(?:[-–—~至到]|\bto\b)\s*(?:' + DATE_ATOM + r'|present|now|至今)', re.I)
+DATE_CUE = re.compile(r'\b(?:from|during|between|in|over)\s*$', re.I)
 BULLET = re.compile(r'^\s*(?:-(?!\d|\.\d|[$€£¥]\s*(?:\d|\.\d))\s*|[*•●▪◦‣]\s*|\d+[.)、]\s+)(.+)$', re.S)
 DATE_SECTIONS = {'experience', 'projects', 'education'}
-DATED_ACTION = re.compile(r'^(?:supported|built|maintained|implemented|created|contributed|led|wrote|developed|'
-                          r'delivered|coordinated|documented|managed)\b', re.I)
+FLOW_FIELDS = ('part', 'region', 'page', 'column', 'table', 'textbox')
 
 
 def heading_key(value):
@@ -105,7 +105,7 @@ def unknown_heading(value):
 
 def same_flow(left, right):
     return all(left['locator'].get(key) == right['locator'].get(key)
-               for key in ('part', 'region', 'page', 'column', 'table', 'textbox'))
+               for key in FLOW_FIELDS)
 
 
 def automatic_list(item):
@@ -117,10 +117,23 @@ def date_header(value):
     # A dated action sentence is body copy, even if an old document lost its
     # list styling. Explicit date spans alone are not proof of an entry header.
     match = DATE_SPAN.search(value)
-    if (match and DATED_ACTION.match(value)
-            and re.search(r'\b(?:from|during|between|in|over)\s*$', value[:match.start()], re.I)):
-        return None
+    if match:
+        cue = DATE_CUE.search(value[:match.start()])
+        if cue:
+            prefix = value[:cue.start()].strip()
+            if prefix and not prefix.endswith(('|', '/')):
+                return None
     return match
+
+
+def entry_heading(value):
+    match = DATE_SPAN.search(value)
+    if match:
+        before = value[:match.start()]
+        if date_header(value):
+            before = DATE_CUE.sub('', before)
+        value = before + value[match.end():]
+    return value.strip(' |/–—-\t')
 
 
 def language_choice(text):
@@ -200,13 +213,24 @@ def linked_contacts(item):
 
 def nonlink_text(item):
     value = item['text']
+    explained_labels = set()
     for link in item.get('line_links', []):
         if not linked_contacts({'line_links': [link]}):
             continue
+        if urlsplit(link['target'].strip()).scheme.lower() == 'mailto':
+            explained_labels.update(('email', 'e-mail', 'mail', '邮箱', '电子邮箱', '电子邮件'))
+        else:
+            explained_labels.update(('portfolio', 'website', 'web', 'site', 'homepage', 'linkedin', 'github',
+                                     '主页', '个人网站', '作品集', '领英'))
         label = link.get('text')
         if isinstance(label, str) and label.strip():
             value = value.replace(label.strip(), '', 1)
-    return value.strip(' \t|·•,;/：:–—-')
+    value = value.strip(' \t|·•,;/：:–—-')
+    if explained_labels:
+        labels = '(?:' + '|'.join(re.escape(label) for label in sorted(explained_labels, key=len, reverse=True)) + ')'
+        if re.fullmatch(labels + r'(?:[ \t|·•,;/：:–—-]+' + labels + ')*', value, re.I):
+            return ''
+    return value
 
 
 def layout_risk(source):
@@ -241,6 +265,7 @@ def organize_text(source, language):
     current = None
     unclassified = None
     last_bullet = None
+    native_items = {}
 
     def section(key, title):
         nonlocal current
@@ -326,10 +351,25 @@ def organize_text(source, language):
             continue
         entries = data['sections'][current]['entries']
         base_key = data['sections'][current]['id'].split('-')[0]
+        native_id = item['locator'].get('list_item_id') if item['locator'].get('list_item') else None
+        native_key = ((item['source_id'], current, len(entries) - 1,
+                       tuple(item['locator'].get(field) for field in FLOW_FIELDS), native_id)
+                      if isinstance(native_id, str) and native_id and base_key != 'unclassified' else None)
+        if native_key in native_items:
+            anchor = native_items[native_key]
+            entry = data['sections'][anchor['section']]['entries'][anchor['entry']]
+            previous = entry['bullets'][anchor['bullet']]
+            separator = '' if previous.endswith('-') else ' '
+            entry['bullets'][anchor['bullet']] += separator + value
+            facts.append(claim(item, anchor['path'], 'continuation_hyphen_candidate'
+                               if previous.endswith('-') else 'continuation_candidate'))
+            last_bullet = anchor
+            index += 1
+            continue
         # Native list markers are layout, not part of the extracted body. A
         # leading sign or symbol in that body must remain literal source text.
         is_bullet = None if list_content else BULLET.match(value)
-        new_list_item = bool(is_bullet or list_content and item['locator']['line_in_block'] == 1)
+        new_list_item = bool(native_key or is_bullet or list_content and item['locator']['line_in_block'] == 1)
         same_word_item = (list_content and last_bullet and automatic_list(last_bullet['anchor'])
                           and item['locator']['line_in_block'] > 1)
         if (last_bullet and not new_list_item and (same_word_item or not DATE_SPAN.search(value))
@@ -348,7 +388,8 @@ def organize_text(source, language):
         match = date_header(value) if base_key in DATE_SECTIONS and not new_list_item and not list_content and len(value) <= 220 else None
         # Single-column dated headers can span one or two adjacent short lines.
         following = []
-        if base_key in DATE_SECTIONS and not new_list_item and not list_content and not match and len(value) <= 140:
+        if (base_key in DATE_SECTIONS and not new_list_item and not list_content and not match
+                and not DATE_SPAN.search(value) and len(value) <= 140):
             for offset in (1, 2):
                 if index + offset >= len(lines):
                     break
@@ -357,6 +398,8 @@ def organize_text(source, language):
                         or BULLET.match(nxt['text']) or len(nxt['text']) > 140):
                     break
                 nxt_match = date_header(nxt['text'])
+                if DATE_SPAN.search(nxt['text']) and not nxt_match:
+                    break
                 following.append(nxt)
                 if nxt_match:
                     match = nxt_match
@@ -373,7 +416,7 @@ def organize_text(source, language):
             date_value = date_match.group()
             headings = []
             for header in header_items:
-                raw = DATE_SPAN.sub('', header['text']).strip(' |/–—-\t')
+                raw = entry_heading(header['text'])
                 if raw:
                     headings.append(raw)
             # A date-only line followed by a short company/role line is explicit
@@ -395,7 +438,7 @@ def organize_text(source, language):
                 paths = []
                 if DATE_SPAN.search(header['text']):
                     paths.append(ep + '.date')
-                if DATE_SPAN.sub('', header['text']).strip(' |/–—-\t'):
+                if entry_heading(header['text']):
                     paths.append(ep + '.heading')
                 record = claim(header, interpretation='date_candidate' if DATE_SPAN.search(header['text']) else 'entry_heading_candidate')
                 record['resume_paths'] = paths
@@ -412,6 +455,9 @@ def organize_text(source, language):
         if new_list_item and base_key != 'unclassified':
             last_bullet = {'anchor': item, 'path': facts[-1]['resume_paths'][0], 'section': current,
                            'entry': len(entries) - 1, 'bullet': len(entries[-1]['bullets']) - 1}
+            if native_key is not None:
+                native_key = (native_key[0], current, len(entries) - 1, native_key[3], native_id)
+                native_items[native_key] = last_bullet
         else:
             last_bullet = None
         index += 1

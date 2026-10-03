@@ -169,6 +169,62 @@ class ImportResumeTests(unittest.TestCase):
         self.assertEqual(evidence['facts'][3]['source']['links'], value['extraction']['blocks'][1]['links'])
         self.assertTrue(all(f['status'] == 'source_only' for f in evidence['facts']))
 
+    def test_actual_labelled_links_only_explain_safe_contact_labels(self):
+        contact = ('Email: <a href="mailto:sample@example.invalid">Email</a> | '
+                   'Portfolio: <a href="https://example.invalid/work">Work samples</a>')
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            paths = []
+            for name, text in (('labels', contact), ('mixed', 'Software Engineer | ' + contact),
+                               ('unsafe', contact.replace('https://example.invalid/work', 'javascript:alert(1)'))):
+                path = base / f'{name}.html'
+                path.write_text('<h1>Sample Candidate</h1><p>' + text + '</p>'
+                                '<h2>Experience</h2><p>Example Co | 2021-2024</p><ul><li>Built forms.</li></ul>')
+                paths.append((path, name))
+            w = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+            r = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+            path = base / 'labels.docx'
+            with zipfile.ZipFile(path, 'w') as package:
+                package.writestr('[Content_Types].xml', '<Types><Override PartName="/word/document.xml"/></Types>')
+                package.writestr('word/document.xml', f'<w:document xmlns:w="{w}" xmlns:r="{r}"><w:body>'
+                    '<w:p><w:r><w:t>Sample Candidate</w:t></w:r></w:p><w:p>'
+                    '<w:r><w:t xml:space="preserve">Email: </w:t></w:r>'
+                    '<w:hyperlink r:id="email"><w:r><w:t>Email</w:t></w:r></w:hyperlink>'
+                    '<w:r><w:t xml:space="preserve"> | Portfolio: </w:t></w:r>'
+                    '<w:hyperlink r:id="portfolio"><w:r><w:t>Work samples</w:t></w:r></w:hyperlink></w:p>'
+                    '<w:p><w:r><w:t>Experience</w:t></w:r></w:p>'
+                    '<w:p><w:r><w:t>Example Co | 2021-2024</w:t></w:r></w:p>'
+                    '<w:p><w:r><w:t>Built forms.</w:t></w:r></w:p></w:body></w:document>')
+                package.writestr('word/_rels/document.xml.rels', '<Relationships>'
+                    '<Relationship Id="email" Target="mailto:sample@example.invalid" TargetMode="External"/>'
+                    '<Relationship Id="portfolio" Target="https://example.invalid/work" TargetMode="External"/>'
+                    '</Relationships>')
+            paths.append((path, 'labels'))
+            for path, kind in paths:
+                with self.subTest(path=path.name):
+                    original = path.read_bytes()
+                    out = base / (path.name + '-out')
+                    importer.import_files([path], out)
+                    self.assertEqual(path.read_bytes(), original)
+                    data = json.loads((out / 'resume.json').read_text())
+                    evidence = json.loads((out / 'evidence.json').read_text())
+                    expected = ['sample@example.invalid']
+                    if kind != 'unsafe':
+                        expected.append('https://example.invalid/work')
+                    self.assertEqual(data['contacts'], expected)
+                    record = evidence['facts'][1]
+                    if kind == 'labels':
+                        self.assertEqual([s['id'] for s in data['sections']], ['experience'])
+                        self.assertEqual(record['resume_paths'], ['contacts[0]', 'contacts[1]'])
+                        self.assertEqual(evidence['remaining_blocks'], [])
+                    else:
+                        self.assertEqual(data['sections'][0]['id'], 'unclassified')
+                        self.assertEqual(data['sections'][0]['entries'][0]['bullets'], [record['text']])
+                        self.assertEqual(record['resume_paths'][-1], 'sections[0].entries[0].bullets[0]')
+                    self.assertEqual(evidence['coverage']['segments'], evidence['coverage']['accounted_segments'])
+                    self.assertTrue(all(f['status'] == 'source_only' for f in evidence['facts']))
+                    self.assertFalse(data['facts_confirmed'])
+
     def test_english_single_column_is_organized_not_merely_copied(self):
         data, evidence = importer.assemble([source(ENGLISH)], 'en', 'software')
         self.assertEqual(data['name'], 'Sample Candidate')
@@ -422,6 +478,128 @@ class ImportResumeTests(unittest.TestCase):
         data, evidence = importer.assemble([value], 'en')
         self.assertEqual(len(data['sections'][0]['entries']), 1)
         self.assertEqual(len(data['sections'][0]['entries'][0]['bullets']), 2)
+
+    def test_actual_plain_dated_actions_keep_employer_across_document_formats(self):
+        action = 'Optimized onboarding from Jan 2022 - Dec 2023.'
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            html = base / 'plain.html'
+            html.write_text('<h1>Sample Candidate</h1><h2>Experience</h2>'
+                            '<p>Example Co / Engineer | Jan 2021 - Dec 2024</p>'
+                            f'<p>{action}</p><p>Documented handoff.</p>')
+            odt = base / 'plain.odt'
+            namespaces = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"'
+            with zipfile.ZipFile(odt, 'w') as package:
+                package.writestr('mimetype', 'application/vnd.oasis.opendocument.text')
+                package.writestr('content.xml', f'<office:document-content {namespaces}><office:body><office:text>'
+                    '<text:p>Sample Candidate</text:p><text:h>Experience</text:h>'
+                    '<text:p>Example Co / Engineer | Jan 2021 - Dec 2024</text:p>'
+                    f'<text:p>{action}</text:p><text:p>Documented handoff.</text:p>'
+                    '</office:text></office:body></office:document-content>')
+            docx = base / 'plain.docx'
+            w = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+            paragraphs = ['Sample Candidate', 'Experience', 'Example Co / Engineer | Jan 2021 - Dec 2024',
+                          action, 'Documented handoff.']
+            with zipfile.ZipFile(docx, 'w') as package:
+                package.writestr('[Content_Types].xml', '<Types><Override PartName="/word/document.xml"/></Types>')
+                package.writestr('word/document.xml', f'<w:document xmlns:w="{w}"><w:body>' +
+                    ''.join(f'<w:p><w:r><w:t>{text}</w:t></w:r></w:p>' for text in paragraphs) + '</w:body></w:document>')
+            for path in (html, odt, docx):
+                with self.subTest(format=path.suffix):
+                    original = path.read_bytes()
+                    out = base / (path.suffix[1:] + '-out')
+                    importer.import_files([path], out)
+                    self.assertEqual(path.read_bytes(), original)
+                    data = json.loads((out / 'resume.json').read_text())
+                    entries = data['sections'][0]['entries']
+                    self.assertEqual(len(entries), 1)
+                    self.assertEqual(entries[0]['date'], 'Jan 2021 - Dec 2024')
+                    self.assertEqual(entries[0]['bullets'], [action, 'Documented handoff.'])
+                    evidence = json.loads((out / 'evidence.json').read_text())
+                    self.assertEqual(evidence['facts'][3]['resume_paths'], ['sections[0].entries[0].bullets[0]'])
+                    self.assertEqual(evidence['coverage']['segments'], evidence['coverage']['accounted_segments'])
+                    self.assertTrue(all(f['status'] == 'source_only' for f in evidence['facts']))
+
+    def test_date_cues_keep_explicit_headers_and_do_not_join_actions_to_next_job(self):
+        data, evidence = importer.assemble([source('Sample Candidate\nExperience\n'
+            'Example Co / Engineer | from Jan 2021 - Dec 2024\n'
+            'Optimized onboarding from Jan 2022 - Dec 2023.\n'
+            'from Jan 2025 - Dec 2025\nNext Co / Engineer\nBuilt forms.')], 'en')
+        entries = data['sections'][0]['entries']
+        self.assertEqual(len(entries), 2)
+        self.assertEqual((entries[0]['heading'], entries[0]['date']), ('Example Co / Engineer', 'Jan 2021 - Dec 2024'))
+        self.assertEqual(entries[0]['bullets'], ['Optimized onboarding from Jan 2022 - Dec 2023.'])
+        self.assertEqual((entries[1]['heading'], entries[1]['date']), ('Next Co / Engineer', 'Jan 2025 - Dec 2025'))
+        self.assertEqual(entries[1]['bullets'], ['Built forms.'])
+        self.assertEqual(evidence['facts'][3]['resume_paths'], ['sections[0].entries[0].bullets[0]'])
+        for header in ('Example Co / Engineer | 2021-2024', '开发工程师 | 2021-2024'):
+            with self.subTest(header=header):
+                data, _ = importer.assemble([source('Experience\n' + header + '\nBuilt forms.')], 'en')
+                self.assertEqual(data['sections'][0]['entries'][0]['date'], '2021-2024')
+
+    def test_actual_native_list_paragraphs_and_parent_tails_share_one_bullet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            html = base / 'nested.html'
+            html.write_text('<h1>Sample Candidate</h1><h2>Experience</h2><p>Example Co | 2021-2024</p>'
+                '<ul><li><p>Built release controls.</p><p>Optimized onboarding from Jan 2022 - Dec 2023.</p>'
+                '<ul><li>Documented support handoff.</li></ul><p>Owned release monitoring.</p></li>'
+                '<li>Improved onboarding.</li></ul>')
+            odt = base / 'nested.odt'
+            namespaces = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"'
+            with zipfile.ZipFile(odt, 'w') as package:
+                package.writestr('mimetype', 'application/vnd.oasis.opendocument.text')
+                package.writestr('content.xml', f'<office:document-content {namespaces}><office:body><office:text>'
+                    '<text:p>Sample Candidate</text:p><text:h>Experience</text:h><text:p>Example Co | 2021-2024</text:p>'
+                    '<text:list><text:list-item><text:p>Built release controls.</text:p>'
+                    '<text:p>Optimized onboarding from Jan 2022 - Dec 2023.</text:p>'
+                    '<text:list><text:list-item><text:p>Documented support handoff.</text:p></text:list-item></text:list>'
+                    '<text:p>Owned release monitoring.</text:p></text:list-item>'
+                    '<text:list-item><text:p>Improved onboarding.</text:p></text:list-item></text:list>'
+                    '</office:text></office:body></office:document-content>')
+            for path in (html, odt):
+                with self.subTest(format=path.suffix):
+                    original = path.read_bytes()
+                    out = base / (path.suffix[1:] + '-out')
+                    importer.import_files([path], out)
+                    self.assertEqual(path.read_bytes(), original)
+                    data = json.loads((out / 'resume.json').read_text())
+                    self.assertEqual(data['sections'][0]['entries'][0]['bullets'], [
+                        'Built release controls. Optimized onboarding from Jan 2022 - Dec 2023. Owned release monitoring.',
+                        'Documented support handoff.', 'Improved onboarding.'])
+                    evidence = json.loads((out / 'evidence.json').read_text())
+                    parent = [f for f in evidence['facts'] if f['source']['locator'].get('list_depth') == 1
+                              and f['source']['locator'].get('item_index') == 1]
+                    self.assertEqual(len(parent), 3)
+                    self.assertTrue(all(f['resume_paths'] == ['sections[0].entries[0].bullets[0]'] for f in parent))
+                    child = next(f for f in evidence['facts'] if f['source']['locator'].get('list_depth') == 2)
+                    self.assertEqual(child['resume_paths'], ['sections[0].entries[0].bullets[1]'])
+                    self.assertEqual(evidence['coverage']['segments'], 8)
+                    self.assertEqual(evidence['coverage']['accounted_segments'], 8)
+                    self.assertTrue(all(f['status'] == 'source_only' for f in evidence['facts']))
+
+    def test_native_item_identity_does_not_cross_sources_sections_entries_or_flow(self):
+        value = source('Sample Candidate\nExperience\nExample Co | 2021-2022\nFirst claim.\n'
+                       'Next Co | 2023-2024\nSecond claim.\nProjects\nExample Project | 2020-2021\nThird claim.')
+        for block in (value['extraction']['blocks'][i] for i in (3, 5, 8)):
+            block['locator'].update(list_item=True, list_item_id='list1/item1')
+        second = copy.deepcopy(value)
+        second['id'] = 'source-002'
+        data, evidence = importer.assemble([value, second], 'en')
+        native = [f for f in evidence['facts'] if f['source']['locator'].get('list_item')]
+        self.assertEqual(len({tuple(f['resume_paths']) for f in native}), 6)
+        self.assertEqual([e['bullets'] for s in data['sections'] for e in s['entries']],
+                         [['First claim.'], ['Second claim.'], ['Third claim.']] * 2)
+        for field in ('part', 'region', 'page', 'column', 'textbox'):
+            with self.subTest(flow_field=field):
+                value = source('Experience\nExample Co | 2021-2024\nFirst claim.\nSecond claim.')
+                for block in value['extraction']['blocks'][2:]:
+                    block['locator'].update(list_item=True, list_item_id='list1/item1')
+                value['extraction']['blocks'][2]['locator'][field] = 1
+                value['extraction']['blocks'][3]['locator'][field] = 2
+                data, evidence = importer.assemble([value], 'en')
+                self.assertEqual(data['sections'][0]['entries'][0]['bullets'], ['First claim.', 'Second claim.'])
+                self.assertEqual(evidence['coverage']['segments'], evidence['coverage']['accounted_segments'])
 
     def test_headings_and_dates_are_not_joined_across_page_or_docx_region(self):
         value = source('Sample Candidate\nExperience\nExample Company\n2023.07-2026.08\n- Built validation.')
