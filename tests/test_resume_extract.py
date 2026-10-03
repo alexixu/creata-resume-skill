@@ -39,6 +39,16 @@ class ExtractTests(unittest.TestCase):
             'word/document.xml': f'<w:document xmlns:w="{W}" xmlns:r="{R}"><w:body>{body}</w:body></w:document>',
             **(other or {})})
 
+    def odt(self, body):
+        namespaces = ' '.join(f'xmlns:{k}="{v}"' for k, v in extractor.OD.items())
+        return self.package('.odt', {'mimetype': 'application/vnd.oasis.opendocument.text',
+            'content.xml': f'<office:document-content {namespaces}><office:body><office:text>{body}</office:text></office:body></office:document-content>'})
+
+    def assert_link(self, block, text, target, index=0):
+        link = block['links'][index]
+        self.assertEqual((link['text'], link['target']), (text, target))
+        self.assertEqual(block['text'][link['text_start']:link['text_end']], text)
+
     def test_bom_lines_stable_ids_and_source_are_preserved(self):
         path = self.source('.txt', '示例候选人\r\n工程师\r\n\r\n经历'.encode('utf-16'))
         original = path.read_bytes()
@@ -71,6 +81,64 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(result['blocks'][2]['links'], [])
         self.assertTrue(result['needs_review'])
 
+    def test_html_source_whitespace_collapses_but_real_breaks_and_pre_survive(self):
+        html = '''<p>Built
+          <a href="https://example.invalid/work">internal
+            <strong>forms</strong></a> and\t tests.</p>
+          <p><a href="mailto:fictional@example.invalid">Email<br>the candidate</a><br>Research Engineer</p>
+          <pre>first  column\n  indented second line</pre>'''
+        path = self.source('.html', html)
+        original = path.read_bytes()
+        with mock.patch.object(extractor, 'command', side_effect=AssertionError('HTML must not run commands')):
+            result = extractor.extract(path)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertEqual([b['text'] for b in result['blocks']], [
+            'Built internal forms and tests.', 'Email\nthe candidate\nResearch Engineer',
+            'first  column\n  indented second line'])
+        self.assert_link(result['blocks'][0], 'internal forms', 'https://example.invalid/work')
+        self.assert_link(result['blocks'][1], 'Email\nthe candidate', 'mailto:fictional@example.invalid')
+        self.assertEqual(result['blocks'][0]['links'][0]['locator']['line_start'], 2)
+        self.assertEqual(result['blocks'][0]['links'][0]['locator']['line_end'], 3)
+
+    def test_html_native_list_dates_breaks_nesting_and_unsafe_targets(self):
+        html = '''<ul><li><p>Optimized onboarding from Jan 2022 - Dec 2023.</p>
+          <p>Preserved the same item.<br>And its real continuation.</p></li>
+          <li>Second item<ul><li>Nested item</li></ul></li></ul>
+          <p><a href="java&#x09;script:alert(1)">Unsafe label</a>
+             <span hidden><a href="https://hidden.invalid">Hidden</a></span></p>'''
+        result = extractor.extract(self.source('.html', html))
+        first, second, nested, unsafe = result['blocks']
+        self.assertEqual(first['text'], 'Optimized onboarding from Jan 2022 - Dec 2023.\nPreserved the same item.\nAnd its real continuation.')
+        self.assertTrue(first['locator']['list_item'])
+        self.assertEqual((first['locator']['list_depth'], first['locator']['item_index']), (1, 1))
+        self.assertEqual(second['locator']['item_index'], 2)
+        self.assertEqual(nested['locator']['list_depth'], 2)
+        self.assertNotEqual(second['locator']['list_item_id'], nested['locator']['list_item_id'])
+        self.assertEqual(unsafe['text'], 'Unsafe label')
+        self.assertEqual(unsafe['links'], [])
+        self.assertTrue(any('Executable/control-containing' in warning for warning in result['warnings']))
+
+    def test_html_completed_icon_anchor_is_retained_without_leaking_open_anchor_spans(self):
+        html = '''<p>Contact: <a href="mailto:fictional@example.invalid"><img src="local-icon.png"></a></p>
+          <div>Previous text<a href="https://example.invalid/work"><div>Current label</div></a>Next text</div>'''
+        with mock.patch.object(extractor, 'command', side_effect=AssertionError('Icons/resources must not load')):
+            result = extractor.extract(self.source('.html', html))
+        icon, previous, label, following = result['blocks']
+        self.assert_link(icon, '', 'mailto:fictional@example.invalid')
+        self.assertEqual(icon['links'][0]['text_start'], len(icon['text']))
+        self.assertEqual(icon['links'][0]['text_end'], len(icon['text']))
+        self.assertEqual(previous['links'], [])
+        self.assert_link(label, 'Current label', 'https://example.invalid/work')
+        self.assertEqual(following['links'], [])
+
+    def test_html_icon_only_paragraph_keeps_completed_target_as_empty_source_block(self):
+        html = '<p><a href="mailto:fictional@example.invalid"><img src="local-icon.png"></a></p>'
+        result = extractor.extract(self.source('.html', html))
+        self.assertEqual(result['blocks'][0]['text'], '')
+        self.assert_link(result['blocks'][0], '', 'mailto:fictional@example.invalid')
+        self.assertEqual(result['status'], 'partial')
+        self.assertTrue(any('No body text' in warning for warning in result['warnings']))
+
     def test_docx_hyperlinks_headers_deleted_text_and_numbered_paragraph(self):
         body = '''<w:p><w:pPr><w:numPr/></w:pPr><w:r><w:t>Current </w:t></w:r>
         <w:del><w:r><w:delText>Deleted claim</w:delText></w:r><w:hyperlink r:id="deleted"><w:r><w:t>Deleted link</w:t></w:r></w:hyperlink></w:del>
@@ -84,7 +152,7 @@ class ExtractTests(unittest.TestCase):
             'word/footer1.xml': f'<w:ftr xmlns:w="{W}"><w:p><w:r><w:t>Contact</w:t></w:r></w:p></w:ftr>'}))
         self.assertEqual([b['text'] for b in result['blocks']], ['Sample Candidate', 'Current portfolio inserted', 'Contact'])
         self.assertEqual([b['locator']['region'] for b in result['blocks']], ['header', 'body', 'footer'])
-        self.assertEqual(result['blocks'][1]['links'], [{'text': 'portfolio', 'target': 'https://example.invalid'}])
+        self.assert_link(result['blocks'][1], 'portfolio', 'https://example.invalid')
         self.assertTrue(result['blocks'][1]['locator']['numbered_paragraph'])
         self.assertTrue(any('tracked changes' in w for w in result['warnings']))
 
@@ -137,7 +205,8 @@ class ExtractTests(unittest.TestCase):
         parts = {'word/_rels/document.xml.rels': '<Relationships><Relationship Id="portfolio" Target="https://example.invalid/work" TargetMode="External"/></Relationships>'}
         result = extractor.extract(self.docx(body, parts))
         self.assertEqual([b['text'] for b in result['blocks']], ['Visible false: portfolio', 'Visible 0: portfolio', 'Visible off: portfolio'])
-        self.assertTrue(all(b['links'] == [{'text': 'portfolio', 'target': 'https://example.invalid/work'}] for b in result['blocks']))
+        for block in result['blocks']:
+            self.assert_link(block, 'portfolio', 'https://example.invalid/work')
         self.assertFalse(any('hidden text omitted' in warning for warning in result['warnings']))
         body += '<w:p><w:r><w:rPr><w:vanish/></w:rPr><w:t>Actually hidden.</w:t></w:r></w:p>'
         result = extractor.extract(self.docx(body, parts))
@@ -160,7 +229,7 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual([b['text'] for b in result['blocks']], ['Sample Candidate', 'Anchor note.', 'Experience',
                          'Example Co / Engineer | 2023-2026', 'Built forms.'])
         self.assertEqual(result['blocks'][1]['links'], [])
-        self.assertEqual(result['blocks'][4]['links'], [{'text': 'Built forms.', 'target': 'https://example.invalid'}])
+        self.assert_link(result['blocks'][4], 'Built forms.', 'https://example.invalid')
         self.assertTrue(all(b['locator']['textbox'] == 1 for b in result['blocks'][2:]))
         self.assertTrue(all(b['locator']['anchor_paragraph'] == 2 for b in result['blocks'][2:]))
         self.assertEqual(len({b['id'] for b in result['blocks']}), 5)
@@ -202,6 +271,106 @@ class ExtractTests(unittest.TestCase):
             with self.subTest(span=span), self.assertRaises(extractor.ExtractionError):
                 extractor.extract(self.docx(f'<w:tbl><w:tr><w:tc><w:tcPr><w:gridSpan w:val="{span}"/></w:tcPr></w:tc></w:tr></w:tbl>'))
 
+    def test_docx_simple_and_split_complex_hyperlink_fields_are_static_and_located(self):
+        body = '''<w:p><w:r><w:t xml:space="preserve">  Contact: </w:t></w:r>
+          <w:fldSimple w:instr=' HYPERLINK "mailto:fictional@example.invalid" '><w:r><w:t>Email</w:t></w:r></w:fldSimple>
+          <w:r><w:t xml:space="preserve"> | </w:t></w:r>
+          <w:r><w:fldChar w:fldCharType="begin"/></w:r>
+          <w:r><w:instrText xml:space="preserve"> HYPER</w:instrText></w:r>
+          <w:r><w:instrText>LINK "https://example.invalid/</w:instrText></w:r>
+          <w:r><w:instrText xml:space="preserve">work" \\o "Fictional portfolio" \\* MERGEFORMAT </w:instrText></w:r>
+          <w:r><w:fldChar w:fldCharType="separate"/></w:r>
+          <w:r><w:t>Portfolio</w:t><w:br/><w:t>work samples</w:t></w:r>
+          <w:r><w:fldChar w:fldCharType="end"/></w:r>
+          <w:r><w:t xml:space="preserve"> trailing label </w:t></w:r></w:p>
+          <w:p><w:fldSimple w:instr='HYPERLINK \\l "project-note"'><w:r><w:t>Internal note</w:t></w:r></w:fldSimple></w:p>'''
+        path = self.docx(body)
+        original = path.read_bytes()
+        with mock.patch.object(extractor, 'command', side_effect=AssertionError('Word fields must not execute')):
+            result = extractor.extract(path)
+        self.assertEqual(path.read_bytes(), original)
+        first, second = result['blocks']
+        self.assertEqual(first['text'], 'Contact: Email | Portfolio\nwork samples trailing label')
+        self.assert_link(first, 'Email', 'mailto:fictional@example.invalid')
+        self.assert_link(first, 'Portfolio\nwork samples', 'https://example.invalid/work', 1)
+        self.assertEqual(first['links'][1]['locator']['field_type'], 'complex')
+        self.assertEqual(first['links'][1]['locator']['paragraph'], 1)
+        self.assert_link(second, 'Internal note', '#project-note')
+        self.assertNotIn('HYPERLINK', first['text'])
+
+    def test_docx_completed_icon_links_keep_targets_without_inventing_labels(self):
+        body = '''<w:p><w:r><w:t xml:space="preserve">Contact: </w:t></w:r>
+          <w:hyperlink r:id="email"><w:r><w:sym w:font="Wingdings" w:char="F02A"/></w:r></w:hyperlink>
+          <w:fldSimple w:instr='HYPERLINK "https://example.invalid/portfolio"'>
+          <w:r><w:sym w:font="Wingdings" w:char="F02A"/></w:r></w:fldSimple></w:p>'''
+        result = extractor.extract(self.docx(body, {'word/_rels/document.xml.rels':
+            '<Relationships><Relationship Id="email" Target="mailto:fictional@example.invalid" TargetMode="External"/></Relationships>'}))
+        block = result['blocks'][0]
+        self.assertEqual(block['text'], 'Contact:')
+        self.assert_link(block, '', 'mailto:fictional@example.invalid')
+        self.assert_link(block, '', 'https://example.invalid/portfolio', 1)
+        self.assertTrue(all(link['text_start'] == link['text_end'] == len(block['text']) for link in block['links']))
+        self.assertEqual(block['links'][0]['locator']['paragraph'], 1)
+        self.assertEqual(block['links'][1]['locator']['field_type'], 'simple')
+
+    def test_docx_icon_only_paragraph_keeps_completed_target_as_empty_source_block(self):
+        body = '<w:p><w:hyperlink r:id="email"><w:r><w:sym w:font="Wingdings" w:char="F02A"/></w:r></w:hyperlink></w:p>'
+        result = extractor.extract(self.docx(body, {'word/_rels/document.xml.rels':
+            '<Relationships><Relationship Id="email" Target="mailto:fictional@example.invalid" TargetMode="External"/></Relationships>'}))
+        self.assertEqual(result['blocks'][0]['text'], '')
+        self.assert_link(result['blocks'][0], '', 'mailto:fictional@example.invalid')
+        self.assertEqual(result['status'], 'partial')
+        self.assertTrue(any('No body text' in warning for warning in result['warnings']))
+
+    def test_docx_unknown_malformed_and_unsafe_fields_keep_cached_labels_with_warnings(self):
+        instructions = ('DATE', 'INCLUDETEXT "https://remote.invalid/source"',
+                        'HYPERLINK "https://example.invalid/unclosed',
+                        'HYPERLINK "https://example.invalid" \\unknown "argument"',
+                        'HYPERLINK "javascript:alert(1)"')
+        from xml.sax.saxutils import quoteattr
+        body = ''.join(f'<w:p><w:fldSimple w:instr={quoteattr(code)}><w:r><w:t>Cached label {index}</w:t></w:r></w:fldSimple></w:p>'
+                       for index, code in enumerate(instructions))
+        body += '''<w:p><w:r><w:fldChar w:fldCharType="begin"/><w:instrText>HYPERLINK "https://incomplete.invalid"</w:instrText>
+          <w:fldChar w:fldCharType="separate"/><w:t>Unclosed cached label</w:t></w:r></w:p>
+          <w:p><w:r><w:fldChar w:fldCharType="end"/><w:t>Following ordinary paragraph</w:t></w:r></w:p>'''
+        with mock.patch.object(extractor, 'command', side_effect=AssertionError('Fields must never evaluate')):
+            result = extractor.extract(self.docx(body))
+        self.assertEqual([b['text'] for b in result['blocks']], [f'Cached label {i}' for i in range(5)] +
+                         ['Unclosed cached label', 'Following ordinary paragraph'])
+        self.assertTrue(all(not b['links'] for b in result['blocks']))
+        for fragment in ('unsupported field type', 'unterminated quoted', 'unsupported or incomplete',
+                         'executable/control-containing', 'not closed', 'unmatched/unsupported'):
+            self.assertTrue(any(fragment in warning for warning in result['warnings']), fragment)
+
+    def test_docx_fields_respect_hidden_deleted_and_selected_compatibility_content(self):
+        field = lambda url, label: f'<w:fldSimple w:instr=\'HYPERLINK "{url}"\'><w:r><w:t>{label}</w:t></w:r></w:fldSimple>'
+        body = f'''<w:p><w:del>{field('https://deleted.invalid', 'Deleted field')}</w:del>
+          <w:r><w:rPr><w:vanish/></w:rPr>{field('https://hidden.invalid', 'Hidden field')}</w:r>
+          <mc:AlternateContent xmlns:mc="{extractor.MC}"><mc:Choice Requires="w">
+            {field('https://selected.invalid', 'Selected field')}</mc:Choice><mc:Fallback>
+            {field('https://fallback.invalid', 'Fallback duplicate')}</mc:Fallback></mc:AlternateContent></w:p>'''
+        result = extractor.extract(self.docx(body))
+        self.assertEqual([b['text'] for b in result['blocks']], ['Selected field'])
+        self.assert_link(result['blocks'][0], 'Selected field', 'https://selected.invalid')
+        self.assertNotIn('deleted.invalid', json.dumps(result['blocks']))
+        self.assertNotIn('hidden.invalid', json.dumps(result['blocks']))
+        self.assertNotIn('fallback.invalid', json.dumps(result['blocks']))
+
+    def test_docx_nested_simple_and_complex_fields_do_not_infer_targets(self):
+        body = '''<w:p><w:fldSimple w:instr='HYPERLINK "https://outer.invalid"'>
+          <w:r><w:t>Outer </w:t></w:r><w:fldSimple w:instr='HYPERLINK "https://inner.invalid"'>
+          <w:r><w:t>inner cached label</w:t></w:r></w:fldSimple></w:fldSimple></w:p>
+          <w:p><w:fldSimple w:instr='HYPERLINK "https://simple.invalid"'>
+          <w:r><w:t>Simple </w:t><w:fldChar w:fldCharType="begin"/>
+          <w:instrText>HYPERLINK "https://complex.invalid"</w:instrText>
+          <w:fldChar w:fldCharType="separate"/><w:t>complex cached label</w:t>
+          <w:fldChar w:fldCharType="end"/></w:r></w:fldSimple></w:p>'''
+        result = extractor.extract(self.docx(body))
+        self.assertEqual([b['text'] for b in result['blocks']],
+                         ['Outer inner cached label', 'Simple complex cached label'])
+        self.assertTrue(all(not b['links'] for b in result['blocks']))
+        self.assertTrue(any('nested fields require review' in warning for warning in result['warnings']))
+
     def test_odt_native_paragraphs_tables_and_deleted_text(self):
         namespaces = ' '.join(f'xmlns:{k}="{v}"' for k, v in extractor.OD.items())
         body = '''<text:h>Sample Candidate</text:h><text:tracked-changes><text:deletion><text:p>Deleted claim</text:p></text:deletion></text:tracked-changes>
@@ -210,6 +379,20 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual([b['text'] for b in result['blocks']], ['Sample Candidate', 'Current  work'])
         self.assertEqual(result['blocks'][1]['locator']['column_span'], 2)
         self.assertNotIn('Deleted claim', str(result['blocks']))
+
+    def test_odt_native_list_items_keep_date_text_and_soft_break_identity(self):
+        body = '''<text:list><text:list-item><text:p>Optimized onboarding from Jan 2022 - Dec 2023.
+          <text:line-break/>Kept this continuation.</text:p></text:list-item>
+          <text:list-item><text:p>Second item.</text:p><text:list><text:list-item>
+          <text:p>Nested item.</text:p></text:list-item></text:list></text:list-item></text:list>'''
+        result = extractor.extract(self.odt(body))
+        first, second, nested = result['blocks']
+        self.assertTrue(first['locator']['list_item'])
+        self.assertIn('Jan 2022 - Dec 2023.', first['text'])
+        self.assertIn('\nKept this continuation.', first['text'])
+        self.assertEqual((first['locator']['list_depth'], second['locator']['item_index']), (1, 2))
+        self.assertEqual(nested['locator']['list_depth'], 2)
+        self.assertNotEqual(second['locator']['list_item_id'], nested['locator']['list_item_id'])
 
     def test_renderer_json_keeps_precise_paths_and_metadata_separate(self):
         data = {'language': 'en', 'role': 'software', 'name': 'Sample Candidate', 'headline': 'Engineer', 'contacts': ['sample@example.invalid'], 'facts_confirmed': True, 'sections': [{'id': 'experience', 'title': 'Experience', 'entries': [{'heading': 'Fictional Co', 'date': '2024', 'bullets': ['Built forms']}]}]}

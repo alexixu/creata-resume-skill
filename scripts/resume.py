@@ -352,11 +352,14 @@ def dependency_names(out):
     private dependency also invalidates the recorded build.
     """
     rules = (out / 'build-dependencies.mk').read_text()
-    _, separator, body = rules.partition(' : ')
+    header, _, continuations = rules.partition('\n')
+    # The fixed input resume.tex is on the rule's first line. Its separator is
+    # the last one on that line; target and continuation paths may contain ' : '.
+    _, separator, first_dependency = header.rpartition(' : ')
     if not separator:
         raise ValueError('cannot read Tectonic build-dependencies.mk; run rebuild again')
     names = {'resume.json', 'resume.tex', 'resume.pdf', 'build.log', 'build-dependencies.mk'}
-    for line in body.splitlines():
+    for line in [first_dependency, *continuations.splitlines()]:
         value = line.strip().removesuffix(' \\')
         if not value:
             continue

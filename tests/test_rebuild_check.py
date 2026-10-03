@@ -184,9 +184,90 @@ class RebuildCheckTests(unittest.TestCase):
             self.assertIn(str(external), names)
             self.assertIn('resume.tex', names)
 
+    def test_dependency_parser_preserves_colon_paths_and_local_symlink_names(self):
+        with tempfile.TemporaryDirectory(prefix='resume private : files ') as tmp:
+            folder = Path(tmp).resolve()
+            out = folder / 'candidate : software'
+            out.mkdir()
+            external = folder / 'shared : note.tex'
+            external.write_text('fictional private source')
+            local = out / 'linked : note.tex'
+            local.symlink_to(external)
+            (out / 'build-dependencies.mk').write_text(
+                str(out / 'resume.pdf') + ' : resume.tex \\\n'
+                '  ' + str(local) + ' \\\n'
+                '  ' + str(external) + '\n')
+            names = resume.dependency_names(out)
+            self.assertIn('resume.tex', names)
+            self.assertIn('linked : note.tex', names)
+            self.assertIn(str(external), names)
+            self.assertNotIn('software/resume.pdf : resume.tex', names)
+
 
 @unittest.skipUnless(PDF_TOOLS, 'requires tectonic and Poppler')
 class RealRebuildTests(unittest.TestCase):
+    def test_colon_output_and_private_dependency_support_check_and_rebuild(self):
+        with tempfile.TemporaryDirectory(prefix='resume-colon-path-') as tmp:
+            folder = Path(tmp).resolve()
+            source, out = folder / 'profile.json', folder / 'candidate : software'
+            source.write_text(json.dumps(PROFILE))
+
+            def cli(*args):
+                return subprocess.run([sys.executable, str(ROOT / 'scripts/resume.py'), *map(str, args)],
+                                      capture_output=True, text=True, cwd=folder)
+
+            generated = cli('render', source, '--out', out, '--theme', 'plain', '--pdf')
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            external = folder / 'shared : content.tex'
+            external.write_text('Extra fictional private note.\n')
+            dependency = out / 'linked : content.tex'
+            dependency.symlink_to(external)
+            private_source = (out / 'resume.tex').read_text().replace(
+                '\\end{document}', '\\input{linked : content.tex}\n\\end{document}')
+            (out / 'resume.tex').write_text(private_source)
+            private_style = (out / 'resume.cls').read_text().replace('left=0.72in', 'left=0.73in')
+            (out / 'resume.cls').write_text(private_style)
+            rebuilt = cli('rebuild', out)
+            self.assertEqual(rebuilt.returncode, 0, rebuilt.stderr)
+            report = json.loads((out / 'qa.json').read_text())
+            self.assertEqual(report['status'], 'PASSED')
+            self.assertEqual(report['input_hashes'][dependency.name], resume.file_hash(external))
+            self.assertIn('Extra fictional private note.', (out / 'resume-extracted.txt').read_text())
+            report.update(visual_review='PASS', reading_order_review='PASS')
+            (out / 'qa.json').write_text(json.dumps(report))
+            checked = cli('check', out)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            report = json.loads((out / 'qa.json').read_text())
+            self.assertEqual(report['visual_review'], 'NOT_RUN')
+            self.assertEqual(report['reading_order_review'], 'NOT_RUN')
+            old_pdf = resume.file_hash(out / 'resume.pdf')
+            old_log = (out / 'build.log').read_bytes()
+            old_state = (out / 'build-state.json').read_bytes()
+            edited_dependency = external.read_text() + '% private dependency edit stays\n'
+            external.write_text(edited_dependency)
+            stale = cli('check', out)
+            self.assertEqual(stale.returncode, 1)
+            report = json.loads((out / 'qa.json').read_text())
+            self.assertIn(dependency.name, report['stale_files'])
+            self.assertEqual(resume.file_hash(out / 'resume.pdf'), old_pdf)
+            self.assertEqual((out / 'build.log').read_bytes(), old_log)
+            self.assertEqual((out / 'build-state.json').read_bytes(), old_state)
+            rebuilt = cli('rebuild', out)
+            self.assertEqual(rebuilt.returncode, 0, rebuilt.stderr)
+            self.assertEqual((out / 'resume.tex').read_text(), private_source)
+            self.assertEqual((out / 'resume.cls').read_text(), private_style)
+            self.assertEqual(external.read_text(), edited_dependency)
+            self.assertTrue(dependency.is_symlink())
+            report = json.loads((out / 'qa.json').read_text())
+            self.assertEqual(report['input_hashes'][dependency.name], resume.file_hash(external))
+            self.assertNotEqual((out / 'build-state.json').read_bytes(), old_state)
+            checked = cli('check', out)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            report = json.loads((out / 'qa.json').read_text())
+            self.assertEqual(report['status'], 'PASSED')
+            self.assertEqual(report['visual_review'], 'NOT_RUN')
+            self.assertEqual(report['reading_order_review'], 'NOT_RUN')
+
     def test_private_edit_stale_check_rebuild_and_check_without_tectonic(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)

@@ -51,7 +51,7 @@ DATE_ATOM = (r'(?:(?:19|20)\d{2}(?:[./\-]\d{1,2}|年\d{1,2}月)?年?|'
              r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
              r'\.?\s+(?:19|20)\d{2})')
 DATE_SPAN = re.compile(DATE_ATOM + r'\s*(?:[-–—~至到]|\bto\b)\s*(?:' + DATE_ATOM + r'|present|now|至今)', re.I)
-BULLET = re.compile(r'^\s*(?:[-*•●▪◦‣]\s*|\d+[.)、]\s+)(.+)$', re.S)
+BULLET = re.compile(r'^\s*(?:-(?!\d|\.\d|[$€£¥]\s*(?:\d|\.\d))\s*|[*•●▪◦‣]\s*|\d+[.)、]\s+)(.+)$', re.S)
 DATE_SECTIONS = {'experience', 'projects', 'education'}
 DATED_ACTION = re.compile(r'^(?:supported|built|maintained|implemented|created|contributed|led|wrote|developed|'
                           r'delivered|coordinated|documented|managed)\b', re.I)
@@ -110,7 +110,7 @@ def same_flow(left, right):
 
 def automatic_list(item):
     locator = item['locator']
-    return bool(locator.get('numbered_paragraph') or locator.get('numbering_candidate'))
+    return bool(locator.get('numbered_paragraph') or locator.get('numbering_candidate') or locator.get('list_item'))
 
 
 def date_header(value):
@@ -145,20 +145,33 @@ def safe_output(inputs, output):
 
 def segments(source):
     for block in source['extraction']['blocks']:
-        lines = block['text'].splitlines()
+        lines = block['text'].splitlines(keepends=True)
         links = [copy.deepcopy(link) for link in block.get('links', [])
                  if isinstance(link, dict) and isinstance(link.get('target'), str)]
-        for index, line in enumerate(lines):
+        offset = 0
+        for index, raw_line in enumerate(lines):
+            line = raw_line.rstrip('\r\n')
+            line_start, line_end = offset, offset + len(line)
+            offset += len(raw_line)
             if not line.strip():
                 continue
+            line_links = []
+            for link in links:
+                start, end = link.get('text_start'), link.get('text_end')
+                if (type(start) is int and type(end) is int
+                        and 0 <= start < end <= len(block['text'])):
+                    if start < line_end and end > line_start:
+                        local = copy.deepcopy(link)
+                        local['text'] = line[max(0, start-line_start):min(len(line), end-line_start)]
+                        line_links.append(local)
+                elif (len(lines) == 1 or isinstance(link.get('text'), str)
+                      and link['text'].strip() and link['text'].strip() in line):
+                    line_links.append(link)
             yield {'text': line.strip(), 'raw_text': line,
                    'indent': len(line.expandtabs(8)) - len(line.expandtabs(8).lstrip(' ')),
                    'block_id': block['id'], 'locator': {
                 **block['locator'], 'line_in_block': index + 1}, 'source_id': source['id'],
-                'sha256': source['sha256'], 'links': links,
-                'line_links': [link for link in links if len(lines) == 1 or
-                               isinstance(link.get('text'), str) and link['text'].strip()
-                               and link['text'].strip() in line]}
+                'sha256': source['sha256'], 'links': links, 'line_links': line_links}
 
 
 def linked_contacts(item):
@@ -313,7 +326,9 @@ def organize_text(source, language):
             continue
         entries = data['sections'][current]['entries']
         base_key = data['sections'][current]['id'].split('-')[0]
-        is_bullet = BULLET.match(value)
+        # Native list markers are layout, not part of the extracted body. A
+        # leading sign or symbol in that body must remain literal source text.
+        is_bullet = None if list_content else BULLET.match(value)
         new_list_item = bool(is_bullet or list_content and item['locator']['line_in_block'] == 1)
         same_word_item = (list_content and last_bullet and automatic_list(last_bullet['anchor'])
                           and item['locator']['line_in_block'] > 1)
@@ -468,9 +483,11 @@ def assemble(sources, language, role=None):
                     suffix += 1
                 item['id'] += f'-{suffix}'
             data['sections'].append(item)
-            for entry in item['entries']:
+            for entry_index, entry in enumerate(item['entries']):
                 if entry.get('heading') and entry.get('date'):
-                    entry_dates.setdefault(' '.join(entry['heading'].casefold().split()), []).append(entry['date'])
+                    entry_dates.setdefault(' '.join(entry['heading'].casefold().split()), []).append({
+                        'date': entry['date'],
+                        'path': f'sections[{len(data["sections"])-1}].entries[{entry_index}].date'})
         record_offset = len(records)
         for fact in facts:
             mapped = []
@@ -493,12 +510,18 @@ def assemble(sources, language, role=None):
             record = records[record_offset + block['claim_index']]
             remaining.append({'fact_id': record['id'], 'text': record['text'], 'reason': block['reason'],
                               'source': record['source']})
-    for heading, dates in entry_dates.items():
-        if len(set(dates)) > 1:
-            conflicts.append({'kind': 'entry_dates_disagree', 'message': 'Same candidate entry has different dates; entries retained separately.',
-                              'heading': heading, 'values': sorted(set(dates))})
     for conflict in conflicts:
-        conflict['fact_ids'] = [f['id'] for f in records if any(v in f['text'] for v in conflict['values'])]
+        candidates = names if conflict['kind'] == 'name_candidates_disagree' else headlines
+        ids = {fact['id'] for value in conflict['values'] for fact in candidates[value]}
+        conflict['fact_ids'] = [fact['id'] for fact in records if fact['id'] in ids]
+    for heading, entries in entry_dates.items():
+        dates = {entry['date'] for entry in entries}
+        if len(dates) > 1:
+            paths = {entry['path'] for entry in entries}
+            conflicts.append({'kind': 'entry_dates_disagree', 'message': 'Same candidate entry has different dates; entries retained separately.',
+                              'heading': heading, 'values': sorted(dates),
+                              'fact_ids': [fact['id'] for fact in records
+                                           if paths.intersection(fact['resume_paths'])]})
     renderer.validate(data, draft=True)
     evidence = {'schema_version': 1, 'facts': records, 'remaining_blocks': remaining, 'conflicts': conflicts,
                 'coverage': {'source_blocks': sum(len(s['extraction']['blocks']) for s in sources),

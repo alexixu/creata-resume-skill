@@ -213,6 +213,195 @@ def visible_word_nodes(node):
         yield from visible_word_nodes(child)
 
 
+def readable_link(target):
+    """Keep inert source targets, excluding executable schemes and controls."""
+    return (isinstance(target, str) and bool(target.strip())
+            and not any(ord(char) < 32 for char in target)
+            and not re.match(r'\s*(?:javascript|data|vbscript):', target, re.I))
+
+
+def trim_link_spans(value, links):
+    """Align retained anchor labels/spans with add()'s stripped block text."""
+    stripped = value.strip()
+    offset, size = len(value) - len(value.lstrip()), len(stripped)
+    retained = []
+    for link in links:
+        start = max(0, min(size, link['text_start'] - offset))
+        end = max(start, min(size, link['text_end'] - offset))
+        if end > start or link.get('_completed'):
+            retained.append({**{key: item for key, item in link.items() if key != '_completed'},
+                             'text_start': start, 'text_end': end,
+                             'text': stripped[start:end]})
+    return retained
+
+
+def hyperlink_instruction(instruction):
+    """Parse a small, static HYPERLINK grammar; never evaluate Word fields."""
+    tokens = []
+    index = 0
+    while index < len(instruction):
+        if instruction[index].isspace():
+            index += 1
+            continue
+        quoted, chars = instruction[index] == '"', []
+        if quoted:
+            index += 1
+            while index < len(instruction) and instruction[index] != '"':
+                if instruction[index:index + 2] == '\\"':
+                    chars.append('"')
+                    index += 2
+                else:
+                    chars.append(instruction[index])
+                    index += 1
+            if index == len(instruction):
+                raise ValueError('unterminated quoted instruction')
+            index += 1
+            if index < len(instruction) and not instruction[index].isspace():
+                raise ValueError('ambiguous quoted instruction boundary')
+        else:
+            while index < len(instruction) and not instruction[index].isspace():
+                if instruction[index] == '"':
+                    raise ValueError('ambiguous instruction quoting')
+                chars.append(instruction[index])
+                index += 1
+        tokens.append((''.join(chars), quoted))
+    if not tokens or tokens[0][0].casefold() != 'hyperlink':
+        raise ValueError('unsupported field type')
+    target, bookmark = None, None
+    index = 1
+    while index < len(tokens):
+        token, quoted = tokens[index]
+        if not quoted and token.startswith('\\'):
+            switch = token.casefold()
+            if switch not in ('\\l', '\\o', '\\t', '\\*') or index + 1 >= len(tokens):
+                raise ValueError('unsupported or incomplete HYPERLINK switch')
+            argument, argument_quoted = tokens[index + 1]
+            if not argument or not argument_quoted and argument.startswith('\\'):
+                raise ValueError('missing HYPERLINK switch argument')
+            if switch == '\\l':
+                if bookmark is not None:
+                    raise ValueError('duplicate HYPERLINK bookmark')
+                bookmark = argument
+            elif switch == '\\*' and argument.casefold() not in ('mergeformat', 'charformat'):
+                raise ValueError('unsupported HYPERLINK formatting switch')
+            index += 2
+        else:
+            if target is not None or not token:
+                raise ValueError('ambiguous HYPERLINK target')
+            target = token
+            index += 1
+    if bookmark is not None:
+        target = (target or '').split('#', 1)[0] + '#' + bookmark
+    if not target:
+        raise ValueError('missing HYPERLINK target')
+    return target
+
+
+def word_content(node, result, location, rels):
+    """Read displayed text and static hyperlinks in one position-aware walk."""
+    chunks, links, fields, simple_fields = [], [], [], []
+    length, field_number, link_number = 0, 0, 0
+
+    def field_link(instruction, start, end, number, kind, invalid=False):
+        if invalid:
+            return
+        try:
+            target = hyperlink_instruction(instruction)
+        except ValueError as error:
+            warn(result, f'DOCX {error}; cached field text retained, field target not inferred')
+            return
+        if not readable_link(target):
+            warn(result, 'DOCX executable/control-containing link target omitted; cached visible text retained')
+            return
+        links.append({'target': target, 'text_start': start, 'text_end': end, '_completed': True,
+                      'locator': {**location, 'field': number, 'field_type': kind}})
+
+    def walk(current):
+        nonlocal length, field_number, link_number
+        tag = current.tag
+        if tag in (f'{{{W}}}del', f'{{{W}}}moveFrom', f'{{{W}}}txbxContent'):
+            return
+        if tag == f'{{{W}}}r' and on_off(current.find('w:rPr/w:vanish', NS)) is True:
+            return
+        if tag == f'{{{W}}}fldChar':
+            kind = current.get(f'{{{W}}}fldCharType')
+            if kind == 'begin':
+                field_number += 1
+                if fields or simple_fields:
+                    warn(result, 'DOCX nested fields require review; cached text retained without inferred field targets')
+                    for field in fields + simple_fields:
+                        field['invalid'] = True
+                fields.append({'number': field_number, 'instruction': [], 'start': None,
+                               'instruction_phase': True, 'invalid': bool(fields or simple_fields)})
+            elif kind == 'separate' and fields and fields[-1]['instruction_phase']:
+                fields[-1].update(start=length, instruction_phase=False)
+            elif kind == 'end' and fields:
+                field = fields.pop()
+                if field['start'] is None:
+                    warn(result, 'DOCX field has no result separator; target not inferred')
+                else:
+                    field_link(''.join(field['instruction']), field['start'], length,
+                               field['number'], 'complex', field['invalid'])
+            else:
+                warn(result, 'DOCX unmatched/unsupported field boundary; cached text requires source review')
+                if fields:
+                    fields[-1]['invalid'] = True
+            return
+        if tag == f'{{{W}}}instrText':
+            if fields and fields[-1]['instruction_phase']:
+                fields[-1]['instruction'].append(current.text or '')
+            else:
+                warn(result, 'DOCX field instruction outside a complete field; instruction omitted')
+            return
+        if tag == f'{{{W}}}fldSimple':
+            field_number += 1
+            number, start = field_number, length
+            simple = {'invalid': bool(fields or simple_fields)}
+            if simple['invalid']:
+                for field in fields + simple_fields:
+                    field['invalid'] = True
+                warn(result, 'DOCX nested fields require review; cached text retained without inferred field targets')
+            simple_fields.append(simple)
+            for child in word_children(current):
+                walk(child)
+            simple_fields.pop()
+            field_link(current.get(f'{{{W}}}instr', ''), start, length, number, 'simple', simple['invalid'])
+            return
+        if tag == f'{{{W}}}hyperlink':
+            link_number += 1
+            number, start = link_number, length
+            for child in word_children(current):
+                walk(child)
+            target = rels.get(current.get(f'{{{R}}}id'), {}).get('Target')
+            if target:
+                if readable_link(target):
+                    links.append({'target': target, 'text_start': start, 'text_end': length, '_completed': True,
+                                  'locator': {**location, 'hyperlink': number}})
+                else:
+                    warn(result, 'DOCX executable/control-containing link target omitted; visible text retained')
+            return
+        value = ((current.text or '') if tag == f'{{{W}}}t' else
+                 '\t' if tag == f'{{{W}}}tab' else
+                 '\n' if tag in (f'{{{W}}}br', f'{{{W}}}cr') else
+                 '\u2011' if tag == f'{{{W}}}noBreakHyphen' else None)
+        if value is not None:
+            if not any(field['instruction_phase'] for field in fields):
+                value = value.replace('\r\n', '\n').replace('\r', '\n')
+                chunks.append(value)
+                length += len(value)
+            elif value.strip():
+                warn(result, 'DOCX text in a field instruction region omitted; compare with the original')
+            return
+        for child in word_children(current):
+            walk(child)
+
+    walk(node)
+    if fields:
+        warn(result, 'DOCX field is not closed in its source paragraph; cached text retained without inferred target')
+    value = ''.join(chunks)
+    return value, trim_link_spans(value, links)
+
+
 def relationships(package, part):
     folder, name = posixpath.split(part)
     relfile = posixpath.join(folder, '_rels', name + '.rels')
@@ -321,17 +510,12 @@ def docx(result, raw):
                 nonlocal paragraph_number, textbox_number
                 paragraph_number += 1
                 location = {'part': part, 'region': region, 'paragraph': paragraph_number, **(context or {})}
-                links = []
-                for link in visible_word_nodes(node):
-                    if link.tag != f'{{{W}}}hyperlink':
-                        continue
-                    target = rels.get(link.get(f'{{{R}}}id'), {}).get('Target')
-                    if target:
-                        links.append({'text': word_text(link), 'target': target})
                 location.update(paragraph_numbering(node))
                 if location.get('numbered_paragraph') or location.get('numbering_candidate'):
                     warn(result, 'DOCX automatic list labels are not rendered; numbered paragraph locators retained')
-                block = add(result, f'docx/{part}/p{paragraph_number}', word_text(node), location, links=links)
+                value, links = word_content(node, result, location, rels)
+                block = add(result, f'docx/{part}/p{paragraph_number}', value, location,
+                            links=links, allow_empty=bool(links))
                 anchor = paragraph_number
                 for child in visible_word_nodes(node):
                     if child.tag == f'{{{W}}}txbxContent':
@@ -463,10 +647,10 @@ def odt(result, raw):
         body = root.find('office:body/office:text', OD)
         if body is None:
             raise ExtractionError('ODT has no text body')
-        counter, table_number = 0, 0
+        counter, table_number, list_number = 0, 0, 0
 
         def walk(node, context=None):
-            nonlocal counter, table_number
+            nonlocal counter, table_number, list_number
             local = node.tag.rsplit('}', 1)[-1]
             if local in ('tracked-changes', 'deletion'):
                 warn(result, 'ODT tracked/deleted text omitted; review changes in the original')
@@ -475,6 +659,23 @@ def odt(result, raw):
                 counter += 1
                 add(result, f'odt/p{counter}', odt_text(node),
                     {'part': 'content.xml', 'paragraph': counter, **(context or {})})
+                return
+            if local == 'list':
+                list_number += 1
+                list_id = f'odt/list{list_number}'
+                depth = (context or {}).get('list_depth', 0) + 1
+                item_number = 0
+                for child in node:
+                    child_context = {**(context or {}), 'list_id': list_id, 'list_depth': depth}
+                    if child.tag == f'{{{OD["text"]}}}list-item':
+                        item_number += 1
+                        child_context.update(list_item=True, item_index=item_number,
+                                             list_item_id=f'{list_id}/item{item_number}')
+                    else:
+                        child_context.pop('list_item', None)
+                        child_context.pop('list_item_id', None)
+                        child_context.pop('item_index', None)
+                    walk(child, child_context)
                 return
             if local == 'table':
                 table_number += 1
@@ -514,57 +715,121 @@ def odt(result, raw):
 
 
 class VisibleHTML(HTMLParser):
-    BLOCKS = {'p', 'div', 'section', 'article', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr', 'td', 'th', 'br'}
+    BLOCKS = {'p', 'div', 'section', 'article', 'li', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr', 'td', 'th', 'ul', 'ol', 'hr'}
     SKIP = {'script', 'style', 'head', 'template', 'noscript', 'iframe', 'object'}
 
     def __init__(self, result):
         super().__init__(convert_charrefs=True)
         self.result, self.stack, self.buffer, self.links = result, [], [], []
-        self.number, self.start, self.tags = 0, 1, 0
+        self.number, self.start, self.tags, self.list_number = 0, 1, 0, 0
+        self.length, self.context = 0, {}
 
     def hidden(self):
-        return any(flag for _, flag in self.stack)
+        return any(frame['hidden'] for frame in self.stack)
+
+    def list_context(self):
+        for frame in reversed(self.stack):
+            if frame['tag'] == 'li':
+                return frame['list_context']
+        return {}
+
+    def append(self, value):
+        if not self.buffer:
+            self.start, self.context = self.getpos()[0], self.list_context().copy()
+        self.buffer.append(value)
+        self.length += len(value)
+
+    def break_line(self):
+        # Keep a real break within the source item, rather than emit a new item.
+        if self.buffer and not self.buffer[-1].endswith('\n'):
+            self.append('\n')
 
     def flush(self):
-        value = ''.join(self.buffer).strip()
-        if value:
+        value = ''.join(self.buffer)
+        links = self.links + [{**frame['link'], 'text_end': self.length}
+                              for frame in self.stack if frame.get('link')]
+        retained_links = trim_link_spans(value, links)
+        if value.strip() or retained_links:
             self.number += 1
+            start = self.start if value.strip() else min(link['locator']['line_start'] for link in retained_links)
             add(self.result, f'html/block{self.number}', value,
-                {'line_start': self.start, 'line_end': self.getpos()[0], 'html_block': self.number},
-                links=self.links)
+                {'line_start': start, 'line_end': self.getpos()[0], 'html_block': self.number,
+                 **(self.context or self.list_context())}, links=retained_links,
+                allow_empty=bool(retained_links))
         self.buffer, self.links = [], []
+        self.length, self.context = 0, {}
+        for frame in self.stack:
+            if frame.get('link'):
+                frame['link']['text_start'] = 0
+                frame['continued_anchor'], frame['nontext_anchor'] = True, False
 
     def handle_starttag(self, tag, attrs):
         self.tags += 1
         attributes = dict(attrs)
         hidden = tag in self.SKIP or 'hidden' in attributes or attributes.get('aria-hidden') == 'true'
         hidden = hidden or bool(re.search(r'(?:display\s*:\s*none|visibility\s*:\s*hidden)', attributes.get('style', ''), re.I))
-        if tag in self.BLOCKS and not self.hidden():
-            self.flush()
-        if tag not in ('br', 'img', 'hr', 'meta', 'link', 'input', 'source', 'wbr'):
-            self.stack.append((tag, hidden))
-        if not self.hidden() and not hidden and tag == 'a' and attributes.get('href'):
-            href = attributes['href']
-            if re.match(r'\s*(?:javascript|data|vbscript):', href, re.I):
-                warn(self.result, 'Executable HTML link target omitted; its visible text is retained')
+        visible = not self.hidden() and not hidden
+        if tag in self.BLOCKS and visible:
+            if self.list_context() and tag not in ('li', 'ul', 'ol'):
+                self.break_line()
             else:
-                self.links.append({'target': href})
-        if tag == 'br' and not self.hidden():
-            self.flush()
+                self.flush()
+        frame = {'tag': tag, 'hidden': hidden}
+        if tag in ('ul', 'ol'):
+            self.list_number += 1
+            frame.update(list_id=f'html/list{self.list_number}', item_index=0)
+        if tag == 'li':
+            lists = [item for item in self.stack if item['tag'] in ('ul', 'ol')]
+            if lists:
+                lists[-1]['item_index'] += 1
+                list_id, item_index = lists[-1]['list_id'], lists[-1]['item_index']
+            else:
+                self.list_number += 1
+                list_id, item_index = f'html/list{self.list_number}', 1
+            frame['list_context'] = {'list_item': True, 'list_id': list_id, 'list_depth': len(lists) or 1,
+                                     'item_index': item_index, 'list_item_id': f'{list_id}/item{item_index}'}
+        if visible and tag == 'a' and attributes.get('href'):
+            href = attributes['href']
+            if not readable_link(href):
+                warn(self.result, 'Executable/control-containing HTML link target omitted; its visible text is retained')
+            else:
+                frame['link'] = {'target': href, 'text_start': self.length,
+                                 'locator': {'tag': 'a', 'line_start': self.getpos()[0]}}
+                frame['continued_anchor'], frame['nontext_anchor'] = False, False
+        if visible and tag == 'img':
+            for anchor in self.stack:
+                if anchor.get('link'):
+                    anchor['nontext_anchor'] = True
+        if tag not in ('br', 'img', 'hr', 'meta', 'link', 'input', 'source', 'wbr'):
+            self.stack.append(frame)
+        if tag == 'br' and visible:
+            self.append('\n')
 
     def handle_endtag(self, tag):
         if tag in self.BLOCKS and not self.hidden():
-            self.flush()
+            if self.list_context() and tag not in ('li', 'ul', 'ol'):
+                self.break_line()
+            else:
+                self.flush()
         for index in range(len(self.stack) - 1, -1, -1):
-            if self.stack[index][0] == tag:
+            if self.stack[index]['tag'] == tag:
+                for frame in self.stack[index:]:
+                    if (frame.get('link') and (self.length > frame['link']['text_start']
+                            or not frame.get('continued_anchor') or frame.get('nontext_anchor'))):
+                        self.links.append({**frame['link'], 'text_end': self.length, '_completed': True,
+                                           'locator': {**frame['link']['locator'], 'line_end': self.getpos()[0]}})
                 del self.stack[index:]
                 break
 
     def handle_data(self, value):
         if not self.hidden():
-            if not self.buffer:
-                self.start = self.getpos()[0]
-            self.buffer.append(value)
+            value = value.replace('\r\n', '\n').replace('\r', '\n')
+            if not any(frame['tag'] == 'pre' for frame in self.stack):
+                value = re.sub(r'[ \t\n\r\f]+', ' ', value)
+                if self.buffer and self.buffer[-1][-1:] in (' ', '\n'):
+                    value = value.lstrip(' ')
+            if value:
+                self.append(value)
 
 
 @functools.lru_cache(maxsize=1)
