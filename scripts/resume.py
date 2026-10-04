@@ -240,8 +240,13 @@ def text_pattern(value):
     # Latin word boundaries stop SQL from matching NoSQL and dates from matching
     # longer numbers. CJK has no whitespace-delimited word boundary.
     word = r'A-Za-z0-9_\u00c0-\u024f\u1e00-\u1eff'
-    if latin(expected[0]) or expected[0].isdigit():
+    starts_number = re.match(r'[+\-\u2212]?(?:\d|\.\d)', expected) is not None
+    if latin(expected[0]) or starts_number:
         parts.append(r'(?<![' + word + '])')
+    if starts_number:
+        # Do not accept a signed value, decimal tail or thousands-group tail as
+        # an independent positive number (3 must not match -3, .3 or 1,003).
+        parts.append(r'(?<![+\-\u2212\u2013\u2014.])(?<!\d,)')
     for index, char in enumerate(expected):
         if index:
             before = expected[index - 1]
@@ -263,15 +268,24 @@ def text_pattern(value):
             # This exception never joins ordinary multi-letter words.
             initials = all(len(token) == 1 and token.isupper() and latin(token)
                            for token in (left, right))
-            # Poppler may omit a narrow gap beside an em dash. The dash itself
+            # Poppler may omit a narrow gap beside an en/em dash. The dash itself
             # stays literal, and ordinary Latin word spaces stay mandatory.
-            adjacent_em_dash = ((index and expected[index - 1] == '\u2014')
-                                or (index + 1 < len(expected) and expected[index + 1] == '\u2014'))
-            parts.append(r'\s*' if adjacent_cjk or initials or adjacent_em_dash else r'\s+')
+            adjacent_dash = ((index and expected[index - 1] in '\u2013\u2014')
+                             or (index + 1 < len(expected) and expected[index + 1] in '\u2013\u2014'))
+            # Observed Poppler output drops the visible gap after right curly
+            # quotes. Preserve both quote characters and ordinary word gaps.
+            after_closing_quote = index and expected[index - 1] in '\u2019\u201d'
+            parts.append(r'\s*' if adjacent_cjk or initials or adjacent_dash or after_closing_quote else r'\s+')
         else:
             parts.append(re.escape(char))
-    if latin(expected[-1]) or expected[-1].isdigit():
+    if expected[-1].isdigit():
+        parts.append(r'(?![' + word + r']|[.,]\d)')
+    elif latin(expected[-1]):
         parts.append(r'(?![' + word + '])')
+    elif re.search(r'\d[.,]$', expected):
+        # A sentence's final full stop/comma cannot stand in for a decimal or
+        # thousands separator followed by additional digits ("3." vs "3.9").
+        parts.append(r'(?!\d)')
     return re.compile(''.join(parts))
 
 

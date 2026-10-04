@@ -50,7 +50,7 @@ DATE_ATOM = (r'(?:(?:19|20)\d{2}(?:[./\-]\d{1,2}|年\d{1,2}月)?年?|'
              r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
              r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
              r'\.?\s+(?:19|20)\d{2})')
-DATE_SPAN = re.compile(DATE_ATOM + r'\s*(?:[-–—~至到]|\bto\b)\s*(?:' + DATE_ATOM + r'|present|now|至今)', re.I)
+DATE_SPAN = re.compile('(' + DATE_ATOM + r')\s*(?:[-–—~至到]|\bto\b)\s*(' + DATE_ATOM + r'|present|now|至今)', re.I)
 DATE_CUE = re.compile(r'\b(?:from|during|between|in|over)\s*$', re.I)
 BULLET = re.compile(r'^\s*(?:-(?!\d|\.\d|[$€£¥]\s*(?:\d|\.\d))\s*|[*•●▪◦‣]\s*|\d+[.)、]\s+)(.+)$', re.S)
 DATE_SECTIONS = {'experience', 'projects', 'education'}
@@ -118,12 +118,33 @@ def date_header(value):
     # list styling. Explicit date spans alone are not proof of an entry header.
     match = DATE_SPAN.search(value)
     if match:
-        cue = DATE_CUE.search(value[:match.start()])
+        before, after = value[:match.start()], value[match.end():]
+        cue = DATE_CUE.search(before)
         if cue:
-            prefix = value[:cue.start()].strip()
+            prefix = before[:cue.start()].strip()
             if prefix and not prefix.endswith(('|', '/')):
                 return None
+        chinese_cue = re.search(r'(?:在|于|从|自)\s*$', before)
+        if (chinese_cue and not before[:chinese_cue.start()].rstrip().endswith(('|', '/'))
+                or re.match(r'\s*(?:期间|年间|内)', after)):
+            return None
     return match
+
+
+def heading_fragment(value):
+    # A sentence ending is body evidence, rather than a reason to consume the
+    # next employer's dated header. Organization abbreviations remain eligible.
+    organization_abbreviation = re.search(r'\b(?:Co|Inc|Corp|Ltd)\.$', value, re.I)
+    return not (re.search(r'[.!?。！？;；]\s*$', value) and not organization_abbreviation)
+
+
+def date_comparison_key(value):
+    match = DATE_SPAN.fullmatch(value.strip())
+    if match:
+        # Compare explicit endpoints, ignoring only the separator and spacing.
+        # Keep original dates in the draft and ledger; do not infer missing parts.
+        return tuple(' '.join(endpoint.split()).casefold() for endpoint in match.groups())
+    return value
 
 
 def entry_heading(value):
@@ -158,28 +179,29 @@ def safe_output(inputs, output):
 
 def segments(source):
     for block in source['extraction']['blocks']:
-        lines = block['text'].splitlines(keepends=True)
         links = [copy.deepcopy(link) for link in block.get('links', [])
                  if isinstance(link, dict) and isinstance(link.get('target'), str)]
+        lines = block['text'].splitlines(keepends=True) or ([''] if links else [])
         offset = 0
         for index, raw_line in enumerate(lines):
             line = raw_line.rstrip('\r\n')
             line_start, line_end = offset, offset + len(line)
             offset += len(raw_line)
-            if not line.strip():
-                continue
             line_links = []
             for link in links:
                 start, end = link.get('text_start'), link.get('text_end')
                 if (type(start) is int and type(end) is int
-                        and 0 <= start < end <= len(block['text'])):
-                    if start < line_end and end > line_start:
+                        and 0 <= start <= end <= len(block['text'])):
+                    if (start < line_end and end > line_start or
+                            start == end and line_start <= start <= line_end):
                         local = copy.deepcopy(link)
                         local['text'] = line[max(0, start-line_start):min(len(line), end-line_start)]
                         line_links.append(local)
                 elif (len(lines) == 1 or isinstance(link.get('text'), str)
                       and link['text'].strip() and link['text'].strip() in line):
                     line_links.append(link)
+            if not line.strip() and not line_links:
+                continue
             yield {'text': line.strip(), 'raw_text': line,
                    'indent': len(line.expandtabs(8)) - len(line.expandtabs(8).lstrip(' ')),
                    'block_id': block['id'], 'locator': {
@@ -225,6 +247,15 @@ def nonlink_text(item):
         label = link.get('text')
         if isinstance(label, str) and label.strip():
             value = value.replace(label.strip(), '', 1)
+    if EMAIL.search(value):
+        explained_labels.update(('email', 'e-mail', 'mail', '邮箱', '电子邮箱', '电子邮件'))
+    if URL.search(value):
+        explained_labels.update(('portfolio', 'website', 'web', 'site', 'homepage', 'linkedin', 'github',
+                                 '主页', '个人网站', '作品集', '领英'))
+    if PHONE.search(value):
+        explained_labels.update(('phone', 'tel', 'telephone', 'mobile', '电话', '手机'))
+    for pattern in (EMAIL, URL, PHONE):
+        value = pattern.sub('', value)
     value = value.strip(' \t|·•,;/：:–—-')
     if explained_labels:
         labels = '(?:' + '|'.join(re.escape(label) for label in sorted(explained_labels, key=len, reverse=True)) + ')'
@@ -261,6 +292,7 @@ def claim(item, path=None, interpretation='original_bullet'):
 def organize_text(source, language):
     data, facts, remaining = new_profile(language), [], []
     lines = list(segments(source))
+    first_text = next((i for i, line in enumerate(lines) if line['text']), None)
     ambiguous = layout_risk(source)
     current = None
     unclassified = None
@@ -303,6 +335,24 @@ def organize_text(source, language):
         item = lines[index]
         value = item['text']
         list_content = automatic_list(item)
+        if not value:
+            last_bullet = None
+            targets = linked_contacts(item) if current is None and not list_content and 'table' not in item['locator'] else []
+            record = claim(item, interpretation='linked_contact_candidate' if targets else 'link_only_source')
+            for target in targets:
+                if target not in data['contacts']:
+                    data['contacts'].append(target)
+                record['resume_paths'].append(f'contacts[{data["contacts"].index(target)}]')
+            facts.append(record)
+            if not targets:
+                remaining.append({'claim_index': len(facts)-1, 'reason': 'link_only_source'})
+            index += 1
+            continue
+        if 'table' in item['locator']:
+            last_bullet = None
+            unclassified_keep(item)
+            index += 1
+            continue
         key = None if list_content else heading_key(value)
         if key:
             last_bullet = None
@@ -310,7 +360,7 @@ def organize_text(source, language):
             facts.append(claim(item, f'sections[{section_index}].title', 'section_candidate'))
             index += 1
             continue
-        named = candidate_name(value) if not list_content and (index == 0 or NAME_LABEL.fullmatch(value)) else None
+        named = candidate_name(value) if not list_content and (index == first_text or NAME_LABEL.fullmatch(value)) else None
         if named and not data['name']:
             last_bullet = None
             data['name'] = named
@@ -337,7 +387,7 @@ def organize_text(source, language):
                     data['contacts'].append(contact)
                 record['resume_paths'].append(f'contacts[{data["contacts"].index(contact)}]')
             facts.append(record)
-            if targets and not contact_candidate(value) and nonlink_text(item):
+            if nonlink_text(item):
                 # A contact link does not account for other visible text on the
                 # same line. Keep that complete line for editorial review while
                 # mapping its single source record to both output locations.
@@ -389,16 +439,20 @@ def organize_text(source, language):
         # Single-column dated headers can span one or two adjacent short lines.
         following = []
         if (base_key in DATE_SECTIONS and not new_list_item and not list_content and not match
-                and not DATE_SPAN.search(value) and len(value) <= 140):
+                and not DATE_SPAN.search(value) and heading_fragment(value) and len(value) <= 140):
             for offset in (1, 2):
                 if index + offset >= len(lines):
                     break
                 nxt = lines[index + offset]
                 if (not same_flow(item, nxt) or automatic_list(nxt) or heading_key(nxt['text']) or unknown_heading(nxt['text'])
-                        or BULLET.match(nxt['text']) or len(nxt['text']) > 140):
+                        or BULLET.match(nxt['text']) or not heading_fragment(nxt['text']) or len(nxt['text']) > 140):
                     break
                 nxt_match = date_header(nxt['text'])
                 if DATE_SPAN.search(nxt['text']) and not nxt_match:
+                    break
+                if nxt_match and entry_heading(nxt['text']):
+                    # This is already a complete header, not a continuation of
+                    # a previous undated body line.
                     break
                 following.append(nxt)
                 if nxt_match:
@@ -562,7 +616,7 @@ def assemble(sources, language, role=None):
         conflict['fact_ids'] = [fact['id'] for fact in records if fact['id'] in ids]
     for heading, entries in entry_dates.items():
         dates = {entry['date'] for entry in entries}
-        if len(dates) > 1:
+        if len({date_comparison_key(date) for date in dates}) > 1:
             paths = {entry['path'] for entry in entries}
             conflicts.append({'kind': 'entry_dates_disagree', 'message': 'Same candidate entry has different dates; entries retained separately.',
                               'heading': heading, 'values': sorted(dates),

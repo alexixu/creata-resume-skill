@@ -41,7 +41,8 @@ NS = {'w': W, 'r': R}
 OD = {'office': 'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
       'text': 'urn:oasis:names:tc:opendocument:xmlns:text:1.0',
       'table': 'urn:oasis:names:tc:opendocument:xmlns:table:1.0',
-      'style': 'urn:oasis:names:tc:opendocument:xmlns:style:1.0'}
+      'style': 'urn:oasis:names:tc:opendocument:xmlns:style:1.0',
+      'xlink': 'http://www.w3.org/1999/xlink'}
 
 
 class ExtractionError(ValueError):
@@ -163,6 +164,128 @@ def on_off(node):
     return None
 
 
+def docx_run_visibility(styles_root, result):
+    """Resolve vanish independently of list styles, retaining uncertain runs."""
+    styles, defaults, chains = {}, {'paragraph': [], 'character': []}, {}
+    if styles_root is not None:
+        for style in styles_root.findall('w:style', NS):
+            style_id = style.get(f'{{{W}}}styleId')
+            kind = style.get(f'{{{W}}}type', 'paragraph')
+            if style_id:
+                styles[style_id] = None if style_id in styles else style
+                if kind in defaults and style.get(f'{{{W}}}default') in ('1', 'true', 'on'):
+                    defaults[kind].append(style_id)
+
+    def uncertain(message):
+        warn(result, 'DOCX hidden-text visibility ' + message + '; text retained for source review')
+
+    def properties(node, path, label):
+        found = node.findall(path, NS) if node is not None else []
+        if len(found) > 1:
+            uncertain(label + ' is ambiguous')
+            return None, False
+        return (found[0] if found else None), True
+
+    def apply(state, rpr, label, toggle=False):
+        vanish, valid = properties(rpr, 'w:vanish', label)
+        if not valid:
+            return None
+        if vanish is None:
+            return state
+        value = on_off(vanish)
+        if value is None:
+            uncertain(label + ' has an unknown flag')
+            return None
+        # Within styles, true toggles and false leaves the inherited state.
+        # Document defaults and direct formatting set the absolute state.
+        if not toggle:
+            return value
+        if value:
+            return not state if state is not None else None
+        return state
+
+    def style_reference(rpr, tag, kind):
+        reference, valid = properties(rpr, tag, kind + ' style reference')
+        if not valid:
+            return None, False
+        if reference is not None:
+            style_id = reference.get(f'{{{W}}}val')
+            if not style_id:
+                uncertain(kind + ' style reference is empty')
+            return style_id, bool(style_id)
+        implicit = defaults[kind]
+        if len(implicit) > 1:
+            uncertain('default ' + kind + ' style is ambiguous')
+            return None, False
+        return (implicit[0] if implicit else None), True
+
+    def style_state(state, style_id, kind):
+        if not style_id:
+            return state
+        key = (style_id, kind)
+        if key not in chains:
+            chain, seen, current = [], set(), style_id
+            while current:
+                if current in seen or len(seen) >= 128:
+                    uncertain(f'{kind} style inheritance cycle/depth at {current}')
+                    chain = None
+                    break
+                seen.add(current)
+                style = styles.get(current)
+                if style is None or style.get(f'{{{W}}}type', 'paragraph') != kind:
+                    uncertain(f'{kind} style {current} is missing/ambiguous')
+                    chain = None
+                    break
+                chain.append(style)
+                parent, valid = properties(style, 'w:basedOn', f'style {current} inheritance')
+                if not valid or parent is not None and not parent.get(f'{{{W}}}val'):
+                    if valid:
+                        uncertain(f'style {current} inheritance is empty')
+                    chain = None
+                    break
+                current = parent.get(f'{{{W}}}val') if parent is not None else None
+            chains[key] = chain
+        chain = chains[key]
+        if chain is None:
+            return None
+        for style in reversed(chain):
+            label = 'style ' + style.get(f'{{{W}}}styleId')
+            rpr, valid = properties(style, 'w:rPr', label + ' run properties')
+            state = apply(state, rpr, label, toggle=True) if valid else None
+        return state
+
+    default_state = False
+    current = styles_root
+    for path in ('w:docDefaults', 'w:rPrDefault', 'w:rPr'):
+        current, valid = properties(current, path, 'document default run properties')
+        if not valid:
+            default_state = None
+            break
+    else:
+        default_state = apply(default_state, current, 'document default hidden text')
+
+    def paragraph_visibility(paragraph):
+        ppr, valid = properties(paragraph, 'w:pPr', 'paragraph properties')
+        style_id, reference_valid = style_reference(ppr, 'w:pStyle', 'paragraph')
+        inherited = style_state(default_state, style_id, 'paragraph') if valid and reference_valid else None
+        cached = {}
+
+        def hidden(run):
+            if run not in cached:
+                rpr, valid = properties(run, 'w:rPr', 'direct run properties')
+                style_id, reference_valid = style_reference(rpr, 'w:rStyle', 'character')
+                state = style_state(inherited, style_id, 'character') if reference_valid else None
+                state = apply(state, rpr, 'direct hidden text') if valid else None
+                if state is None:
+                    uncertain('could not be resolved')
+                elif state:
+                    warn(result, 'DOCX hidden text omitted; review the original document')
+                cached[run] = state is True
+            return cached[run]
+        return hidden
+    return paragraph_visibility
+
+
 def word_children(node):
     """Select one readable compatibility branch, rather than duplicate both."""
     if node.tag != f'{{{MC}}}AlternateContent':
@@ -200,17 +323,17 @@ def word_text(node):
     return ''.join(word_text(child) for child in word_children(node))
 
 
-def visible_word_nodes(node):
+def visible_word_nodes(node, hidden=None):
     """Walk displayed nodes without leaking hyperlinks from deleted runs."""
     if node.tag in (f'{{{W}}}del', f'{{{W}}}moveFrom'):
         return
-    if node.tag == f'{{{W}}}r' and on_off(node.find('w:rPr/w:vanish', NS)) is True:
+    if node.tag == f'{{{W}}}r' and (hidden(node) if hidden else on_off(node.find('w:rPr/w:vanish', NS)) is True):
         return
     yield node
     if node.tag == f'{{{W}}}txbxContent':
         return
     for child in word_children(node):
-        yield from visible_word_nodes(child)
+        yield from visible_word_nodes(child, hidden)
 
 
 def readable_link(target):
@@ -297,10 +420,10 @@ def hyperlink_instruction(instruction):
     return target
 
 
-def word_content(node, result, location, rels):
+def word_content(node, result, location, rels, hidden=None):
     """Read displayed text and static hyperlinks in one position-aware walk."""
     chunks, links, fields, simple_fields = [], [], [], []
-    length, field_number, link_number = 0, 0, 0
+    length, field_number, link_number, visible_tokens = 0, 0, 0, 0
 
     def field_link(instruction, start, end, number, kind, invalid=False):
         if invalid:
@@ -317,11 +440,11 @@ def word_content(node, result, location, rels):
                       'locator': {**location, 'field': number, 'field_type': kind}})
 
     def walk(current):
-        nonlocal length, field_number, link_number
+        nonlocal length, field_number, link_number, visible_tokens
         tag = current.tag
         if tag in (f'{{{W}}}del', f'{{{W}}}moveFrom', f'{{{W}}}txbxContent'):
             return
-        if tag == f'{{{W}}}r' and on_off(current.find('w:rPr/w:vanish', NS)) is True:
+        if tag == f'{{{W}}}r' and (hidden(current) if hidden else on_off(current.find('w:rPr/w:vanish', NS)) is True):
             return
         if tag == f'{{{W}}}fldChar':
             kind = current.get(f'{{{W}}}fldCharType')
@@ -331,17 +454,17 @@ def word_content(node, result, location, rels):
                     warn(result, 'DOCX nested fields require review; cached text retained without inferred field targets')
                     for field in fields + simple_fields:
                         field['invalid'] = True
-                fields.append({'number': field_number, 'instruction': [], 'start': None,
+                fields.append({'number': field_number, 'instruction': [], 'start': None, 'visible_start': visible_tokens,
                                'instruction_phase': True, 'invalid': bool(fields or simple_fields)})
             elif kind == 'separate' and fields and fields[-1]['instruction_phase']:
-                fields[-1].update(start=length, instruction_phase=False)
+                fields[-1].update(start=length, visible_start=visible_tokens, instruction_phase=False)
             elif kind == 'end' and fields:
                 field = fields.pop()
                 if field['start'] is None:
                     warn(result, 'DOCX field has no result separator; target not inferred')
                 else:
                     field_link(''.join(field['instruction']), field['start'], length,
-                               field['number'], 'complex', field['invalid'])
+                               field['number'], 'complex', field['invalid'] or visible_tokens == field['visible_start'])
             else:
                 warn(result, 'DOCX unmatched/unsupported field boundary; cached text requires source review')
                 if fields:
@@ -355,7 +478,7 @@ def word_content(node, result, location, rels):
             return
         if tag == f'{{{W}}}fldSimple':
             field_number += 1
-            number, start = field_number, length
+            number, start, visible_start = field_number, length, visible_tokens
             simple = {'invalid': bool(fields or simple_fields)}
             if simple['invalid']:
                 for field in fields + simple_fields:
@@ -365,21 +488,25 @@ def word_content(node, result, location, rels):
             for child in word_children(current):
                 walk(child)
             simple_fields.pop()
-            field_link(current.get(f'{{{W}}}instr', ''), start, length, number, 'simple', simple['invalid'])
+            field_link(current.get(f'{{{W}}}instr', ''), start, length, number, 'simple',
+                       simple['invalid'] or visible_tokens == visible_start)
             return
         if tag == f'{{{W}}}hyperlink':
             link_number += 1
-            number, start = link_number, length
+            number, start, visible_start = link_number, length, visible_tokens
             for child in word_children(current):
                 walk(child)
             target = rels.get(current.get(f'{{{R}}}id'), {}).get('Target')
-            if target:
+            if target and visible_tokens > visible_start:
                 if readable_link(target):
                     links.append({'target': target, 'text_start': start, 'text_end': length, '_completed': True,
                                   'locator': {**location, 'hyperlink': number}})
                 else:
                     warn(result, 'DOCX executable/control-containing link target omitted; visible text retained')
             return
+        if tag in (f'{{{W}}}sym', f'{{{W}}}drawing', f'{{{W}}}pict', f'{{{W}}}object'):
+            if not any(field['instruction_phase'] for field in fields):
+                visible_tokens += 1
         value = ((current.text or '') if tag == f'{{{W}}}t' else
                  '\t' if tag == f'{{{W}}}tab' else
                  '\n' if tag in (f'{{{W}}}br', f'{{{W}}}cr') else
@@ -389,6 +516,8 @@ def word_content(node, result, location, rels):
                 value = value.replace('\r\n', '\n').replace('\r', '\n')
                 chunks.append(value)
                 length += len(value)
+                if value.strip():
+                    visible_tokens += 1
             elif value.strip():
                 warn(result, 'DOCX text in a field instruction region omitted; compare with the original')
             return
@@ -420,9 +549,10 @@ def docx(result, raw):
         if body is None:
             raise ExtractionError('DOCX has no document body')
         mainrels = relationships(package, 'word/document.xml')
-        styles, default_style = {}, None
+        styles, default_style, styles_root = {}, None, None
         if 'word/styles.xml' in package.namelist():
-            for style in xml_part(package, 'word/styles.xml').findall('w:style', NS):
+            styles_root = xml_part(package, 'word/styles.xml')
+            for style in styles_root.findall('w:style', NS):
                 if style.get(f'{{{W}}}type', 'paragraph') != 'paragraph':
                     continue
                 style_id = style.get(f'{{{W}}}styleId')
@@ -434,6 +564,7 @@ def docx(result, raw):
                         styles[style_id] = style
                 if style.get(f'{{{W}}}default') in ('1', 'true', 'on'):
                     default_style = style_id
+        paragraph_visibility = docx_run_visibility(styles_root, result)
 
         def paragraph_numbering(node):
             """Resolve only structural list intent; never manufacture visible labels."""
@@ -513,11 +644,12 @@ def docx(result, raw):
                 location.update(paragraph_numbering(node))
                 if location.get('numbered_paragraph') or location.get('numbering_candidate'):
                     warn(result, 'DOCX automatic list labels are not rendered; numbered paragraph locators retained')
-                value, links = word_content(node, result, location, rels)
+                hidden = paragraph_visibility(node)
+                value, links = word_content(node, result, location, rels, hidden)
                 block = add(result, f'docx/{part}/p{paragraph_number}', value, location,
                             links=links, allow_empty=bool(links))
                 anchor = paragraph_number
-                for child in visible_word_nodes(node):
+                for child in visible_word_nodes(node, hidden):
                     if child.tag == f'{{{W}}}txbxContent':
                         textbox_number += 1
                         warn(result, 'DOCX floating textbox placement/order requires source review; internal paragraphs retained separately')
@@ -625,18 +757,49 @@ def docx(result, raw):
         result['method'] = 'docx-zip-xml'
 
 
-def odt_text(node):
-    local = node.tag.rsplit('}', 1)[-1]
-    if local in ('tracked-changes', 'deletion'):
-        return ''
-    if local == 's':
-        count = int(node.get(f'{{{OD["text"]}}}c', '1'))
-        if count > 10000:
-            raise ExtractionError('ODT repeated spaces exceed limits')
-        return ' ' * count
-    if local in ('tab', 'line-break'):
-        return '\t' if local == 'tab' else '\n'
-    return (node.text or '') + ''.join(odt_text(child) + (child.tail or '') for child in node)
+def odt_content(node, result, locator):
+    """Keep paragraph text and inert anchor targets with aligned source spans."""
+    parts, links, length, anchor_number = [], [], 0, 0
+
+    def append(value):
+        nonlocal length
+        parts.append(value)
+        length += len(value)
+
+    def walk(element):
+        nonlocal anchor_number
+        local = element.tag.rsplit('}', 1)[-1]
+        if local in ('tracked-changes', 'deletion'):
+            warn(result, 'ODT tracked/deleted text omitted; review changes in the original')
+            return
+        if local == 's':
+            count = int(element.get(f'{{{OD["text"]}}}c', '1'))
+            if not 1 <= count <= 10000:
+                raise ExtractionError('ODT repeated spaces exceed limits')
+            append(' ' * count)
+            return
+        if local in ('tab', 'line-break'):
+            append('\t' if local == 'tab' else '\n')
+            return
+        start, link = length, None
+        if element.tag == f'{{{OD["text"]}}}a':
+            anchor_number += 1
+            target = element.get(f'{{{OD["xlink"]}}}href')
+            if readable_link(target):
+                link = {'target': target, 'text_start': start, '_completed': True,
+                        'locator': {**locator, 'tag': 'text:a', 'anchor': anchor_number}}
+            else:
+                warn(result, 'ODT missing/executable/control-containing link target omitted; visible text retained')
+        append(element.text or '')
+        for child in element:
+            walk(child)
+            append(child.tail or '')
+        if link is not None:
+            links.append({**link, 'text_end': length})
+
+    walk(node)
+    value = ''.join(parts)
+    return value, trim_link_spans(value, links)
 
 
 def odt(result, raw):
@@ -649,6 +812,16 @@ def odt(result, raw):
             raise ExtractionError('ODT has no text body')
         counter, table_number, list_number = 0, 0, 0
 
+        def table_rows(node):
+            # Row groups belong to this table; a descendant table has its own
+            # walk and must not also be emitted as an outer-table row.
+            for child in node:
+                if child.tag == f'{{{OD["table"]}}}table-row':
+                    yield child
+                elif child.tag in (f'{{{OD["table"]}}}table-header-rows', f'{{{OD["table"]}}}table-rows',
+                                   f'{{{OD["table"]}}}table-row-group'):
+                    yield from table_rows(child)
+
         def walk(node, context=None):
             nonlocal counter, table_number, list_number
             local = node.tag.rsplit('}', 1)[-1]
@@ -657,8 +830,9 @@ def odt(result, raw):
                 return
             if local in ('p', 'h'):
                 counter += 1
-                add(result, f'odt/p{counter}', odt_text(node),
-                    {'part': 'content.xml', 'paragraph': counter, **(context or {})})
+                location = {'part': 'content.xml', 'paragraph': counter, **(context or {})}
+                value, links = odt_content(node, result, location)
+                add(result, f'odt/p{counter}', value, location, links=links, allow_empty=bool(links))
                 return
             if local == 'list':
                 list_number += 1
@@ -682,7 +856,7 @@ def odt(result, raw):
                 number = table_number
                 warn(result, 'ODT table reading order requires review; cells and spans are kept separately')
                 row_number = 0
-                for row in node.iter(f'{{{OD["table"]}}}table-row'):
+                for row in table_rows(node):
                     repeat = int(row.get(f'{{{OD["table"]}}}number-rows-repeated', '1'))
                     if not 1 <= repeat <= 1000:
                         raise ExtractionError('ODT repeated rows exceed limits')
@@ -700,6 +874,8 @@ def odt(result, raw):
                                 location = {'table': number, 'row': row_number, 'column': column,
                                             'row_span': int(cell.get(f'{{{OD["table"]}}}number-rows-spanned', '1')),
                                             'column_span': int(cell.get(f'{{{OD["table"]}}}number-columns-spanned', '1'))}
+                                if context and 'table' in context:
+                                    location['parent_cell'] = context.copy()
                                 if kind == 'covered-table-cell':
                                     location['merge_continuation'] = True
                                 for child in cell:
@@ -715,13 +891,13 @@ def odt(result, raw):
 
 
 class VisibleHTML(HTMLParser):
-    BLOCKS = {'p', 'div', 'section', 'article', 'li', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr', 'td', 'th', 'ul', 'ol', 'hr'}
+    BLOCKS = {'p', 'div', 'section', 'article', 'li', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'tr', 'td', 'th', 'ul', 'ol', 'hr'}
     SKIP = {'script', 'style', 'head', 'template', 'noscript', 'iframe', 'object'}
 
     def __init__(self, result):
         super().__init__(convert_charrefs=True)
         self.result, self.stack, self.buffer, self.links = result, [], [], []
-        self.number, self.start, self.tags, self.list_number = 0, 1, 0, 0
+        self.number, self.start, self.tags, self.list_number, self.table_number = 0, 1, 0, 0, 0
         self.length, self.context = 0, {}
 
     def hidden(self):
@@ -733,9 +909,16 @@ class VisibleHTML(HTMLParser):
                 return frame['list_context']
         return {}
 
+    def table_context(self):
+        for frame in reversed(self.stack):
+            if frame.get('table_context'):
+                return frame['table_context']
+        return {}
+
     def append(self, value):
         if not self.buffer:
-            self.start, self.context = self.getpos()[0], self.list_context().copy()
+            self.start = self.getpos()[0]
+            self.context = {**self.table_context(), **self.list_context()}
         self.buffer.append(value)
         self.length += len(value)
 
@@ -754,7 +937,7 @@ class VisibleHTML(HTMLParser):
             start = self.start if value.strip() else min(link['locator']['line_start'] for link in retained_links)
             add(self.result, f'html/block{self.number}', value,
                 {'line_start': start, 'line_end': self.getpos()[0], 'html_block': self.number,
-                 **(self.context or self.list_context())}, links=retained_links,
+                 **(self.context if self.buffer else {**self.table_context(), **self.list_context()})}, links=retained_links,
                 allow_empty=bool(retained_links))
         self.buffer, self.links = [], []
         self.length, self.context = 0, {}
@@ -775,6 +958,27 @@ class VisibleHTML(HTMLParser):
             else:
                 self.flush()
         frame = {'tag': tag, 'hidden': hidden}
+        if visible and tag == 'table':
+            self.table_number += 1
+            frame.update(table_context={'table': self.table_number}, row_number=0)
+            warn(self.result, 'HTML table reading order requires review; source cell coordinates retained')
+        elif visible and tag == 'tr':
+            table = next((item for item in reversed(self.stack) if item['tag'] == 'table'), None)
+            if table is not None and 'table_context' in table:
+                table['row_number'] += 1
+                frame.update(table_context={**table['table_context'], 'row': table['row_number']}, column_number=1)
+        elif visible and tag in ('td', 'th'):
+            row = next((item for item in reversed(self.stack) if item['tag'] == 'tr'), None)
+            if row is not None and 'table_context' in row:
+                try:
+                    column_span, row_span = int(attributes.get('colspan', '1')), int(attributes.get('rowspan', '1'))
+                except ValueError as error:
+                    raise ExtractionError('HTML table spans must be positive integers') from error
+                if not 1 <= column_span <= 1000 or not 1 <= row_span <= 1000:
+                    raise ExtractionError('HTML table spans exceed limits')
+                frame['table_context'] = {**row['table_context'], 'column': row['column_number'],
+                                          'column_span': column_span, 'row_span': row_span}
+                row['column_number'] += column_span
         if tag in ('ul', 'ol'):
             self.list_number += 1
             frame.update(list_id=f'html/list{self.list_number}', item_index=0)

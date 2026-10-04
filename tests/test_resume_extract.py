@@ -81,6 +81,22 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(result['blocks'][2]['links'], [])
         self.assertTrue(result['needs_review'])
 
+    def test_html_table_cells_keep_boundaries_without_changing_later_body_flow(self):
+        html = 'Before<table><tr><td colspan="2">Skills</td><td>Python</td></tr>' \
+               '<tr><td><p>Nested cell paragraph</p></td></tr></table>After'
+        result = extractor.extract(self.source('.html', html))
+        self.assertEqual([block['text'] for block in result['blocks']],
+                         ['Before', 'Skills', 'Python', 'Nested cell paragraph', 'After'])
+        skills, python = result['blocks'][1:3]
+        self.assertEqual((skills['locator']['table'], skills['locator']['row'], skills['locator']['column']), (1, 1, 1))
+        self.assertEqual(skills['locator']['column_span'], 2)
+        self.assertEqual(python['locator']['column'], 3)
+        self.assertEqual(result['blocks'][3]['locator']['row'], 2)
+        self.assertNotIn('table', result['blocks'][0]['locator'])
+        self.assertNotIn('table', result['blocks'][-1]['locator'])
+        self.assertTrue(any('HTML table reading order' in warning for warning in result['warnings']))
+        self.assertTrue(result['needs_review'])
+
     def test_html_source_whitespace_collapses_but_real_breaks_and_pre_survive(self):
         html = '''<p>Built
           <a href="https://example.invalid/work">internal
@@ -313,6 +329,21 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(block['links'][0]['locator']['paragraph'], 1)
         self.assertEqual(block['links'][1]['locator']['field_type'], 'simple')
 
+    def test_docx_hyperlink_and_field_targets_with_only_hidden_labels_are_omitted(self):
+        hidden = '<w:r><w:rPr><w:vanish/></w:rPr><w:t>Hidden address</w:t></w:r>'
+        body = f'''<w:p><w:r><w:t>Contact header</w:t></w:r>
+          <w:hyperlink r:id="hidden">{hidden}</w:hyperlink>
+          <w:fldSimple w:instr='HYPERLINK "mailto:hidden@example.invalid"'>{hidden}</w:fldSimple>
+          <w:r><w:fldChar w:fldCharType="begin"/></w:r>
+          <w:r><w:instrText>HYPERLINK "https://hidden.invalid"</w:instrText></w:r>
+          <w:r><w:fldChar w:fldCharType="separate"/></w:r>{hidden}
+          <w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'''
+        rels = '<Relationships><Relationship Id="hidden" Target="mailto:hidden@example.invalid" TargetMode="External"/></Relationships>'
+        result = extractor.extract(self.docx(body, {'word/_rels/document.xml.rels': rels}))
+        self.assertEqual(result['blocks'][0]['text'], 'Contact header')
+        self.assertEqual(result['blocks'][0]['links'], [])
+        self.assertTrue(any('hidden text omitted' in warning for warning in result['warnings']))
+
     def test_docx_icon_only_paragraph_keeps_completed_target_as_empty_source_block(self):
         body = '<w:p><w:hyperlink r:id="email"><w:r><w:sym w:font="Wingdings" w:char="F02A"/></w:r></w:hyperlink></w:p>'
         result = extractor.extract(self.docx(body, {'word/_rels/document.xml.rels':
@@ -379,6 +410,46 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual([b['text'] for b in result['blocks']], ['Sample Candidate', 'Current  work'])
         self.assertEqual(result['blocks'][1]['locator']['column_span'], 2)
         self.assertNotIn('Deleted claim', str(result['blocks']))
+
+    def test_odt_nested_table_rows_are_read_once_with_distinct_parent_locations(self):
+        body = '''<table:table><table:table-header-rows><table:table-row><table:table-cell>
+          <text:p>Outer header</text:p></table:table-cell></table:table-row></table:table-header-rows>
+          <table:table-row-group><table:table-row><table:table-cell><text:p>Outer before</text:p>
+          <table:table><table:table-row><table:table-cell><text:p>Inner claim</text:p></table:table-cell></table:table-row></table:table>
+          <text:p>Outer after</text:p></table:table-cell></table:table-row></table:table-row-group></table:table>'''
+        result = extractor.extract(self.odt(body))
+        self.assertEqual([block['text'] for block in result['blocks']],
+                         ['Outer header', 'Outer before', 'Inner claim', 'Outer after'])
+        self.assertEqual([block['locator']['table'] for block in result['blocks']], [1, 1, 2, 1])
+        inner = result['blocks'][2]['locator']
+        self.assertEqual((inner['row'], inner['column']), (1, 1))
+        self.assertEqual(inner['parent_cell']['table'], 1)
+        self.assertEqual(inner['parent_cell']['row'], 2)
+
+    def test_odt_links_keep_static_targets_labels_spans_and_source_locations(self):
+        body = '''<text:p>  Email: <text:a xlink:href="mailto:sample@example.invalid"><text:span>Email</text:span><text:line-break/>candidate</text:a>
+          | <text:a xlink:href="https://example.invalid/work">Portfolio</text:a>  </text:p>
+          <text:p><text:a xlink:href="https://example.invalid/icons"/></text:p>'''
+        path = self.odt(body)
+        original = path.read_bytes()
+        result = extractor.extract(path)
+        self.assertEqual(path.read_bytes(), original)
+        self.assert_link(result['blocks'][0], 'Email\ncandidate', 'mailto:sample@example.invalid')
+        self.assert_link(result['blocks'][0], 'Portfolio', 'https://example.invalid/work', 1)
+        self.assertEqual(result['blocks'][0]['links'][0]['locator']['paragraph'], 1)
+        self.assertEqual(result['blocks'][0]['links'][0]['locator']['part'], 'content.xml')
+        self.assert_link(result['blocks'][1], '', 'https://example.invalid/icons')
+        self.assertEqual(result['blocks'][1]['text'], '')
+
+    def test_odt_deleted_and_executable_link_targets_are_not_read(self):
+        body = '''<text:p><text:a xlink:href="javascript:alert(1)">Visible label</text:a>
+          <text:deletion><text:a xlink:href="https://deleted.invalid">Deleted</text:a></text:deletion></text:p>
+          <text:p><text:a xlink:href="https://example.invalid/&#10;control">Control label</text:a></text:p>'''
+        result = extractor.extract(self.odt(body))
+        self.assertNotIn('Deleted', str(result['blocks']))
+        self.assertTrue(all(not block['links'] for block in result['blocks']))
+        self.assertIn('Visible label', result['blocks'][0]['text'])
+        self.assertTrue(any('link target omitted' in warning for warning in result['warnings']))
 
     def test_odt_native_list_items_keep_date_text_and_soft_break_identity(self):
         body = '''<text:list><text:list-item><text:p>Optimized onboarding from Jan 2022 - Dec 2023.

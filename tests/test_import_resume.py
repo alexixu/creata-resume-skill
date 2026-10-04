@@ -58,6 +58,79 @@ def source(text, source_id='source-001', warnings=None):
 
 
 class ImportResumeTests(unittest.TestCase):
+    def test_link_only_segments_have_contact_or_remaining_provenance(self):
+        value = source('Sample Candidate\nExperience\nExample Co | 2022-2024\nBuilt forms')
+        link = lambda target, start=0: {'text': '', 'target': target, 'text_start': start, 'text_end': start}
+        value['extraction']['blocks'].insert(0, {'id': 'empty-header', 'text': '', 'locator': {'paragraph': 1},
+            'links': [link('mailto:sample@example.invalid')]})
+        value['extraction']['blocks'].append({'id': 'empty-body', 'text': '', 'locator': {'paragraph': 6},
+            'links': [link('https://example.invalid/body')]})
+        data, evidence = importer.assemble([value], 'en')
+        self.assertEqual(data['name'], 'Sample Candidate')
+        self.assertEqual(data['contacts'], ['sample@example.invalid'])
+        self.assertEqual(evidence['coverage']['segments'], 6)
+        self.assertEqual(evidence['coverage']['accounted_segments'], 6)
+        self.assertEqual(evidence['facts'][0]['text'], '')
+        self.assertEqual(evidence['facts'][0]['resume_paths'], ['contacts[0]'])
+        self.assertEqual(evidence['facts'][-1]['resume_paths'], [])
+        self.assertEqual(evidence['remaining_blocks'][0]['fact_id'], evidence['facts'][-1]['id'])
+        self.assertEqual(evidence['remaining_blocks'][0]['reason'], 'link_only_source')
+        self.assertNotIn('', data['sections'][0]['entries'][0]['bullets'])
+
+    def test_zero_length_anchors_at_explicit_line_ends_are_accounted_once(self):
+        value = source('Sample Candidate\nPlaceholder')
+        value['extraction']['blocks'][1] = {'id': 'line-icons', 'text': 'Email\nPortfolio', 'locator': {'paragraph': 2},
+            'links': [{'text': '', 'target': 'mailto:sample@example.invalid', 'text_start': 5, 'text_end': 5},
+                      {'text': '', 'target': 'https://example.invalid/work', 'text_start': 15, 'text_end': 15}]}
+        data, evidence = importer.assemble([value], 'en')
+        self.assertEqual(data['contacts'], ['sample@example.invalid', 'https://example.invalid/work'])
+        self.assertEqual(evidence['coverage']['segments'], 3)
+        self.assertEqual(evidence['coverage']['accounted_segments'], 3)
+        self.assertEqual(evidence['coverage']['unclassified_segments'], 0)
+
+    def test_actual_odt_and_icon_contacts_keep_targets_and_source_hashes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            target = 'mailto:sample@example.invalid'
+            header = f'<w:p><w:hyperlink r:id="mail"><w:r><w:sym w:font="Wingdings" w:char="F02A"/></w:r></w:hyperlink></w:p>'
+            w = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+            r = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+            body = ''.join(f'<w:p><w:r><w:t>{text}</w:t></w:r></w:p>' for text in
+                           ['Sample Candidate', 'Experience', 'Example Co | 2022-2024', 'Built fictional forms.'])
+            docx = base / 'icon.docx'
+            with zipfile.ZipFile(docx, 'w') as archive:
+                archive.writestr('[Content_Types].xml', '<Types><Override PartName="/word/document.xml"/></Types>')
+                archive.writestr('word/document.xml', f'<w:document xmlns:w="{w}" xmlns:r="{r}"><w:body>{header}{body}</w:body></w:document>')
+                archive.writestr('word/_rels/document.xml.rels', f'<Relationships><Relationship Id="mail" Target="{target}" TargetMode="External"/></Relationships>')
+            html = base / 'icon.html'
+            html.write_text(f'<p><a href="{target}"><img src="local-icon.png"></a></p><h1>Sample Candidate</h1>'
+                            '<h2>Experience</h2><p>Example Co | 2022-2024</p><p>Built fictional forms.</p>')
+            odt = base / 'linked.odt'
+            namespaces = ' '.join(f'xmlns:{key}="{namespace}"' for key, namespace in importer.local_module('resume_extract').OD.items())
+            body = ('<text:p>Sample Candidate</text:p>'
+                    f'<text:p>Email: <text:a xlink:href="{target}">Email</text:a> | '
+                    '<text:a xlink:href="https://example.invalid/work">Portfolio</text:a></text:p>'
+                    '<text:h>Experience</text:h><text:p>Example Co | 2022-2024</text:p><text:p>Built fictional forms.</text:p>')
+            with zipfile.ZipFile(odt, 'w') as archive:
+                archive.writestr('mimetype', 'application/vnd.oasis.opendocument.text')
+                archive.writestr('content.xml', f'<office:document-content {namespaces}><office:body><office:text>{body}</office:text></office:body></office:document-content>')
+            for path in (docx, html, odt):
+                with self.subTest(format=path.suffix):
+                    before = path.read_bytes()
+                    out = base / (path.stem + path.suffix + '-out')
+                    importer.import_files([path], out, language='en')
+                    data = json.loads((out / 'resume.json').read_text())
+                    evidence = json.loads((out / 'evidence.json').read_text())
+                    self.assertEqual(data['name'], 'Sample Candidate')
+                    self.assertIn('sample@example.invalid', data['contacts'])
+                    self.assertEqual(evidence['coverage']['segments'], evidence['coverage']['accounted_segments'])
+                    contacts = [fact for fact in evidence['facts'] if any(p.startswith('contacts[') for p in fact['resume_paths'])]
+                    self.assertEqual(contacts[0]['source']['sha256'], importer.renderer.file_hash(path))
+                    self.assertEqual(contacts[0]['source']['links'][0]['target'], target)
+                    self.assertTrue(all(fact['status'] == 'source_only' for fact in evidence['facts']))
+                    self.assertFalse(data['facts_confirmed'])
+                    self.assertEqual(path.read_bytes(), before)
+
     def test_markdown_name_heading_preserves_identity_and_real_sections(self):
         for name, language in (('Sample Candidate', 'en'), ('张样例', 'zh')):
             with self.subTest(language=language):
@@ -148,6 +221,27 @@ class ImportResumeTests(unittest.TestCase):
         self.assertEqual(evidence['coverage']['unclassified_segments'], 1)
         self.assertEqual(evidence['remaining_blocks'][0]['fact_id'], fact['id'])
         self.assertTrue(all(f['status'] == 'source_only' for f in evidence['facts']))
+
+    def test_visible_contact_line_also_accounts_for_role_and_other_header_copy(self):
+        for text in ('Software Engineer | sample@example.invalid | Focus: internal tools.',
+                     '运营助理 | sample@example.invalid | 参与报表整理。',
+                     'Software Engineer | 555-0100 | https://example.invalid/work'):
+            with self.subTest(text=text):
+                data, evidence = importer.assemble([source('Sample Candidate\n' + text +
+                    '\nExperience\nExample Co | 2022-2024\nBuilt forms')], 'en')
+                fact = evidence['facts'][1]
+                self.assertEqual(fact['resume_paths'][0], 'contacts[0]')
+                self.assertEqual(fact['resume_paths'][1], 'sections[0].entries[0].bullets[0]')
+                self.assertEqual(data['sections'][0]['entries'][0]['bullets'], [text])
+                self.assertEqual(evidence['remaining_blocks'][0]['fact_id'], fact['id'])
+                self.assertEqual(evidence['coverage']['segments'], 5)
+                self.assertEqual(evidence['coverage']['accounted_segments'], 5)
+        for text in ('Email: sample@example.invalid | Website: https://example.invalid/work',
+                     'Phone: 555-0100 | sample@example.invalid'):
+            with self.subTest(contact_only=text):
+                _, evidence = importer.assemble([source('Sample Candidate\n' + text +
+                    '\nExperience\nExample Co | 2022-2024\nBuilt forms')], 'en')
+                self.assertEqual(evidence['remaining_blocks'], [])
 
     def test_link_spans_keep_cross_line_targets_and_mixed_body_provenance(self):
         value = source('Sample Candidate\nPlaceholder')
@@ -635,6 +729,21 @@ class ImportResumeTests(unittest.TestCase):
         self.assertIn('Another Candidate', rendered)
         self.assertIn('Jul 2023 - Aug 2026', rendered)
         self.assertIn('Jul 2022 - Aug 2026', rendered)
+
+    def test_date_separator_formatting_does_not_create_a_false_conflict(self):
+        original = 'Sample Candidate\nExperience\nExample Co / Engineer | 2021-2024\n- Built forms.'
+        for date in ('2021 – 2024', '2021 — 2024', '2021 to 2024', '2021至2024'):
+            with self.subTest(date=date):
+                other = original.replace('2021-2024', date)
+                data, evidence = importer.assemble([source(original), source(other, 'source-002')], 'en')
+                self.assertEqual(evidence['conflicts'], [])
+                self.assertEqual([section['entries'][0]['date'] for section in data['sections']], ['2021-2024', date])
+                self.assertTrue(any(date in fact['text'] for fact in evidence['facts']))
+        for date in ('2021-2025', '2022-2024', '2021.01-2024.01'):
+            with self.subTest(different_date=date):
+                _, evidence = importer.assemble([source(original), source(original.replace('2021-2024', date), 'source-002')], 'en')
+                self.assertEqual(len(evidence['conflicts']), 1)
+                self.assertEqual(evidence['conflicts'][0]['kind'], 'entry_dates_disagree')
         self.assertEqual(len({s['id'] for s in data['sections']}), len(data['sections']))
         for f in evidence['facts']:
             self.assertTrue(f['resume_paths'])
